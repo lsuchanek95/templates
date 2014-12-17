@@ -1,0 +1,118 @@
+heat_template_version: 2013-05-23
+
+description: >
+  Two example autoscaling groups, one old style and one new.
+  The VMs in the groups do not do anything, this is a very
+  basic sampler.
+
+parameters:
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the instances
+  flavor:
+    type: string
+    description: Flavor for the instances to be created
+    default: m1.small
+    constraints:
+      - allowed_values: [m1.tiny, m1.small, m1.medium, m1.large]
+        description: Value must be one of 'm1.tiny', 'm1.small', 'm1.medium', or 'm1.large'
+  image:
+    type: string
+    default: fedora-20.x86_64
+    description: >
+      Name or ID of the image to use for the instances.
+      You can get the default from
+      http://cloud.fedoraproject.org/fedora-20.x86_64.qcow2
+      There is also
+      http://cloud.fedoraproject.org/fedora-20.i386.qcow2
+      Any image should work since this template
+      does not ask the VMs to do anything.
+  meter_group:
+    type: string
+    description: value of the metering.instgroup metadatum for the VMs
+    default: ogrp
+
+resources:
+  new_style:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      resource:
+        type: vm_with_cinder.yaml
+        properties:
+            key_name: { get_param: key_name }
+            image: { get_param: image }
+            flavor: { get_param: flavor }
+            meter_group: { get_param: meter_group }
+      min_size: 1
+      desired_capacity: 3
+      max_size: 5
+
+  old_style:
+    type: AWS::AutoScaling::AutoScalingGroup
+    properties:
+      AvailabilityZones: {'Fn::GetAZs': ''}
+      LaunchConfigurationName: {get_resource: LaunchConfig}
+      MinSize: '1'
+      DesiredCapacity: 3
+      MaxSize: '5'
+      Tags:
+      - {Key: metering.server_group, Value: old_style}
+
+  LaunchConfig:
+    type: AWS::AutoScaling::LaunchConfiguration
+    properties:
+      ImageId: {get_param: image}
+      InstanceType: {get_param: flavor}
+      KeyName: { get_param: key_name }
+
+  OldScaleUpPolicy:
+    type: AWS::AutoScaling::ScalingPolicy
+    properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: {get_resource: old_style}
+      Cooldown: 60
+      ScalingAdjustment: '1'
+
+  OldScaleDnPolicy:
+    type: AWS::AutoScaling::ScalingPolicy
+    properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: {get_resource: old_style}
+      Cooldown: 60
+      ScalingAdjustment: -1
+
+  NewScaleUpPolicy:
+    type: AWS::AutoScaling::ScalingPolicy
+    properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: {get_resource: new_style}
+      Cooldown: 60
+      ScalingAdjustment: '1'
+
+  NewScaleDnPolicy:
+    type: AWS::AutoScaling::ScalingPolicy
+    properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: {get_resource: new_style}
+      Cooldown: 60
+      ScalingAdjustment: '-1'
+
+outputs:
+  new_group_id:
+    description: the ID of the new-style ASG
+    value: { get_resource: new_style }
+  old_group_id:
+    description: the ID of the old-style ASG
+    value: { get_resource: old_style }
+  old_up_url:
+    description: webhook to scale up the old-style group
+    value: {get_attr: [OldScaleUpPolicy, AlarmUrl]}
+  old_dn_url:
+    description: webhook to scale down the old-style group
+    value: {get_attr: [OldScaleDnPolicy, AlarmUrl]}
+  new_up_url:
+    description: webhook to scale up the new-style group
+    value: {get_attr: [NewScaleUpPolicy, AlarmUrl]}
+  new_dn_url:
+    description: webhook to scale down the new-style group
+    value: {get_attr: [NewScaleDnPolicy, AlarmUrl]}

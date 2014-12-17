@@ -1,0 +1,13 @@
+heat_template_version: 2013-05-23
+parameters:
+  private_net_name:
+    type: string
+    default: private
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.nano
+      image: cirros-0.3.2-x86_64-uec
+      networks:
+        - network: {get_param: private_net_name}

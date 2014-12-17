@@ -1,0 +1,11 @@
+heat_template_version: 2013-05-23
+resources:
+    port:
+        type: OS::Neutron::Port
+        properties:
+            network: private
+outputs:
+    subnet_attr:
+        value: {get_attr: [port, subnets]}
+    fixed_ips:
+        value: {get_attr: [port, fixed_ips]}

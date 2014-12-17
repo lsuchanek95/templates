@@ -1,0 +1,29 @@
+heat_template_version: 2013-05-23
+# disable_rollback: False
+parameters:
+  flavor:
+    type: string
+    default: m1.tiny
+  image:
+    type: string
+    default: cirros-0.3.1-x86_64-uec
+  network:
+    type: string
+    default: ee953766-0830-4321-86d8-5dc8f93f759c
+resources:
+
+  # the_port:
+  #   type: OS::Neutron::Port
+  #   properties:
+  #     network_id: {get_param: network}
+
+  the_server:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor_update_policy: REPLACE
+      flavor: {get_param: flavor}
+      networks:
+      # - port: {get_resource: the_port}
+        - network: { get_param: network}
+          fixed_ip: 10.0.0.20

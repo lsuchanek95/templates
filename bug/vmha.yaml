@@ -1,0 +1,63 @@
+heat_template_version: 2013-05-23
+
+parameters:
+  subnet_id:
+    type: string
+    description: subnet on which the load balancer will be located
+    default: 36394222-edf5-47f3-a840-6812bddf0298
+  network_id:
+    type: string
+    description: subnet on which the load balancer will be located
+    default: 3346aa84-83d1-4087-9ec9-60751f207b8c
+
+resources:
+  vmha:
+    type: OS::Heat::VMPolicy
+    properties:
+      pool: [{get_resource: pool}]
+      max_retries: 1
+      period: 5
+      delay: 120
+      policy: "REBUILD"
+  monitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 2
+      max_retries: 2
+      timeout: 2
+  pool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: TCP
+      monitors: [{get_resource: monitor}]
+      subnet_id: {get_param: subnet_id}
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: 22
+  member1:
+    type: OS::Neutron::PoolMember
+    properties:
+      pool_id: {get_resource: pool}
+      address: {get_attr: [server1, first_address]}
+      protocol_port: 22
+  # member2:
+  #   type: OS::Neutron::PoolMember
+  #   properties:
+  #     pool_id: {get_resource: pool}
+  #     address: {get_attr: [server2, first_address]}
+  #     protocol_port: 22
+  server1:
+    type: OS::Nova::Server
+    properties:
+      networks:
+       - network: {get_param: network_id}
+      flavor: m1.nano
+      image: cirros-0.3.2-x86_64-uec
+  # server2:
+  #   type: OS::Nova::Server
+  #   properties:
+  #     networks:
+  #      - network: {get_param: network_id}
+  #     flavor: m1.nano
+  #     image: cirros-0.3.2-x86_64-uec

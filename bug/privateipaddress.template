@@ -1,0 +1,38 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "5f496f20-9d74-44b3-87f8-fee38c99ca87 test♥",
+  "Parameters" : {
+    "KeyName" : {
+      "Description" : "KeyName",
+      "Type" : "String",
+      "Default" : "lxiaojun"
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Description": "EC2 instance type",
+      "Default": "m1.tiny"
+    },
+    "paratest": {
+      "Type": "String",
+      "Description": "EC2 instance type",
+      "Default": "test"
+    },
+    "SubnetId": {
+      "Type" : "String",
+      "Description" : "SubnetId of an existing subnet in your VPC",
+      "Default" : "46f62305-69b1-4997-9738-f4d39514e2b8"
+    }
+  },
+  "Resources" : {
+    "web": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId"        : "cirros-0.3.2-x86_64-uec",
+        "InstanceType"   : { "Ref" : "InstanceType" },
+        "SubnetId"       : { "Ref" : "SubnetId" },
+        "KeyName"        : { "Ref" : "KeyName" },
+        "UserData"       : "wordpress"
+      }
+    }
+  }
+}

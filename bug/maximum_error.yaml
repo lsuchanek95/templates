@@ -1,0 +1,14 @@
+heat_template_version: 2013-05-23
+description: Simple template to deploy a single compute instance
+
+parameters:
+  image:
+    type: string
+    label: Image
+    description: image  
+resources:
+  my_instance1:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: image }
+      flavor: m1.small

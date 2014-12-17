@@ -1,0 +1,229 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "AWS CloudFormation Sample Template",
+
+  "Parameters" : {
+
+    "KeyName" : {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+      "Type" : "String",
+      "Default" : "lxiaojun"
+    },
+
+    "InstanceType" : {
+      "Description" : "WebServer EC2 instance type",
+      "Type" : "String",
+      "Default" : "m1.small",
+      "AllowedValues" : [ "m1.tiny", "m1.small", "m1.medium", "m1.large", "m1.xlarge" ],
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+
+    "SubnetId" : {
+      "Type" : "String",
+      "Default" : "5f496f20-9d74-44b3-87f8-fee38c99ca87"
+    },
+
+    "LinuxDistribution": {
+      "Default": "Fedora-x86_64-20-20131211.1-sda",
+      "Description" : "Distribution of choice",
+      "Type": "String"
+    }
+  },
+
+  "Resources" : {
+    "CfnUser" : {
+      "Type" : "AWS::IAM::User"
+    },
+    "WebServerKeys" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : {"Ref": "CfnUser"}
+      }
+    },
+    "WebServerGroup" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "AvailabilityZones" : { "Fn::GetAZs" : ""},
+        "LaunchConfigurationName" : { "Ref" : "LaunchConfig" },
+        "MinSize" : "1",
+        "MaxSize" : "3",
+        "LoadBalancerNames" : [ { "Ref" : "ELB" } ],
+        "VPCZoneIdentifier" : [ { "Ref" : "SubnetId"} ]
+      }
+    },
+
+    "WebServerScaleUpPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "WebServerGroup" },
+        "Cooldown" : "60",
+        "ScalingAdjustment" : "1"
+      }
+    },
+
+    "WebServerScaleDownPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "WebServerGroup" },
+        "Cooldown" : "60",
+        "ScalingAdjustment" : "-1"
+      }
+    },
+
+    "MEMAlarmHigh": {
+     "Type": "AWS::CloudWatch::Alarm",
+     "Properties": {
+        "AlarmDescription": "Scale-up if MEM > 50% for 1 minute",
+        "MetricName": "MemoryUtilization",
+        "Namespace": "system/linux",
+        "Statistic": "Average",
+        "Period": "60",
+        "EvaluationPeriods": "1",
+        "Threshold": "50",
+        "AlarmActions": [ { "Ref": "WebServerScaleUpPolicy" } ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "WebServerGroup" }
+          }
+        ],
+        "ComparisonOperator": "GreaterThanThreshold"
+      }
+    },
+    "MEMAlarmLow": {
+     "Type": "AWS::CloudWatch::Alarm",
+     "Properties": {
+        "AlarmDescription": "Scale-down if MEM < 15% for 1 minute",
+        "MetricName": "MemoryUtilization",
+        "Namespace": "system/linux",
+        "Statistic": "Average",
+        "Period": "60",
+        "EvaluationPeriods": "1",
+        "Threshold": "15",
+        "AlarmActions": [ { "Ref": "WebServerScaleDownPolicy" } ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "WebServerGroup" }
+          }
+        ],
+        "ComparisonOperator": "LessThanThreshold"
+      }
+    },
+
+    "ELB": {
+      "Type": "OS::Neutron::LoadBalancer",
+      "Properties": {
+        "protocol_port": "80",
+        "pool_id": { "Ref": "LBPool" }
+      }
+    },
+    "LBPool": {
+      "Type": "OS::Neutron::Pool",
+      "Properties": {
+        "lb_method": "ROUND_ROBIN",
+        "protocol": "HTTP",
+        "description": "Test Pool",
+        "subnet_id": { "Ref" : "SubnetId"},
+        "vip": {
+          "protocol_port": "80",
+          "connection_limit": 1000,
+          "description": "Test",
+          "name": "VIP"
+        },
+        "monitors": [{ "Ref" : "LBMonitor"}],
+        "name": "LBPool"
+      }
+    },
+    "LBMonitor": {
+      "Type": "OS::Neutron::HealthMonitor",
+      "Properties": {
+        "delay": 3,
+        "max_retries": 5,
+        "url_path": "/",
+        "type": "HTTP",
+        "timeout": 10
+      }
+    },
+
+    "LaunchConfig" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+            "files" : {
+              "/etc/cfn/cfn-credentials" : {
+                "content" : { "Fn::Join" : ["", [
+                  "AWSAccessKeyId=", { "Ref" : "WebServerKeys" }, "\n",
+                  "AWSSecretKey=", {"Fn::GetAtt": ["WebServerKeys",
+                                    "SecretAccessKey"]}, "\n"
+                ]]},
+                "mode"    : "000400",
+                "owner"   : "root",
+                "group"   : "root"
+              },
+              "/etc/cfn/cfn-hup.conf" : {
+                "content" : { "Fn::Join" : ["", [
+                  "[main]\n",
+                  "stack=", { "Ref" : "AWS::StackName" }, "\n",
+                  "credential-file=/etc/cfn/cfn-credentials\n",
+                  "region=", { "Ref" : "AWS::Region" }, "\n",
+                  "interval=1\n"
+                ]]},
+                "mode"    : "000400",
+                "owner"   : "root",
+                "group"   : "root"
+              },
+              "/tmp/stats-crontab.txt" : {
+                "content" : { "Fn::Join" : ["", [
+                "MAIL=\"\"\n",
+                "\n",
+                "* * * * * /opt/aws/bin/cfn-push-stats --watch ",
+                { "Ref" : "MEMAlarmHigh" }, " --mem-util\n",
+                "* * * * * /opt/aws/bin/cfn-push-stats --watch ",
+                { "Ref" : "MEMAlarmLow" }, " --mem-util\n"
+                ]]},
+                "mode"    : "000600",
+                "owner"   : "root",
+                "group"   : "root"
+              }
+            },
+            "packages" : {
+              "yum" : {
+                "httpd"        : []
+              }
+            },
+            "services" : {
+              "systemd" : {
+                "httpd"    : { "enabled" : "true", "ensureRunning" : "true" }
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "ImageId" : { "Ref" : "LinuxDistribution" },
+        "InstanceType"   : { "Ref" : "InstanceType" },
+        "KeyName"        : { "Ref" : "KeyName" },
+        "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -v\n",
+          "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackName" },
+          " -r LaunchConfig ",
+          " --region ", { "Ref" : "AWS::Region" }, "\n",
+          "echo $HOSTNAME > /var/www/html/index.html\n",
+          "# install crontab\n",
+          "crontab /tmp/stats-crontab.txt\n"
+        ]]}}
+      }
+    }
+  },
+
+  "Outputs" : {
+    "URL" : {
+      "Description" : "The URL of the website"
+    }
+  }
+}

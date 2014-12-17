@@ -1,0 +1,18 @@
+heat_template_version: 2013-05-23
+description: Flavor Extra-Specs
+resources:
+  flavor_type:
+    type: OS::Nova::Flavor
+    properties:
+      ram: 1024
+      vcpus: 1
+      disk: 10
+      extra_specs: {aaa: "ddd",
+                    bbb: "sss"}
+  # server:
+  #   type: OS::Nova::Server
+  #   properties:
+  #     image: cirros-0.3.2-x86_64-uec
+  #     flavor: m1.tiny
+  #     networks:
+  #       - fixed_ip: 10.0.0.7

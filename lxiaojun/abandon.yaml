@@ -1,0 +1,51 @@
+{
+  "status": "COMPLETE", 
+  "name": "test", 
+  "stack_user_project_id": "65e18f2d14644fae9d7c0a8390caf9fb", 
+  "environment": {
+    "parameters": {}, 
+    "resource_registry": {
+      "resources": {}
+    }
+  }, 
+  "template": {
+    "heat_template_version": "2013-05-23", 
+    "resources": {
+      "server": {
+        "type": "OS::Nova::Server", 
+        "properties": {
+          "image": {
+            "get_param": "image"
+          }, 
+          "flavor": {
+            "get_param": "flavor"
+          }
+        }
+      }
+    }, 
+    "parameters": {
+      "image": {
+        "default": "cirros-0.3.2-x86_64-uec", 
+        "type": "string"
+      }, 
+      "flavor": {
+        "default": "m1.nano", 
+        "type": "string"
+      }
+    }
+  }, 
+  "action": "CREATE", 
+  "project_id": "e067ce481f614ad59e8b2869c28fdd06", 
+  "id": "bf2fb34a-e3db-455a-870f-93e4e32a669b", 
+  "resources": {
+    "server": {
+      "status": "COMPLETE", 
+      "name": "server", 
+      "resource_data": {}, 
+      "resource_id": "e5324151-0adc-4a8b-b2a3-b279c047ed52", 
+      "action": "CREATE", 
+      "type": "OS::Nova::Server", 
+      "metadata": {}
+    }
+  }
+}

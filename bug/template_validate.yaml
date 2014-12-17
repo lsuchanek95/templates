@@ -1,0 +1,7 @@
+heat_template_version: 2013-05-23
+parameters:
+  value_default:
+    type: string
+    default: test
+  value_no_default:
+    type: string

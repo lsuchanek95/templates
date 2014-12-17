@@ -1,0 +1,8 @@
+heat_template_version: 2013-05-23
+resources:
+    volattach:
+        type: AWS::EC2::VolumeAttachment
+        properties:
+            InstanceId: FakeId
+            VolumeId: FakeId
+            Device: '%a%'

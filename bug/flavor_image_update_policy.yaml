@@ -1,0 +1,18 @@
+heat_template_version: 2013-05-23
+description: nova::Server
+parameters:
+  image_name:
+    type: string
+    description: Image used for servers
+    default: cirros-0.3.2-x86_64-uec
+resources:
+  Server:
+    type: OS::Nova::Server
+    properties:
+        image: cirros-0.3.2-x86_64-uec
+        image_update_policy: REBUILD
+        flavor: m1.small
+        flavor_update_policy: RESIZE
+        key_name: lxiaojun
+        networks:
+        - network: private

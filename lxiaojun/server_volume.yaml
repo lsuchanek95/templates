@@ -1,0 +1,20 @@
+heat_template_version: 2013-05-23
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      image: cirros-0.3.2-x86_64-uec
+      flavor: m1.nano
+      user_data:
+        #!/bin/bash
+        echo 'hello world' > /root/test.txt1
+  cinder_volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: 1
+  cinder_volume:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: { get_resource: cinder_volume }
+      instance_uuid: { get_resource: server }
+      mountpoint: /dev/vdc

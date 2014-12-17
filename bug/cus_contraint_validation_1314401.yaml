@@ -1,0 +1,57 @@
+heat_template_version: 2013-05-23
+
+parameters:
+  key_name:
+    type: string
+    description: keypair to enable SSH access to the instance.
+    default: lxiaojun
+    constraints:
+      - custom_constraint: nova.keypair
+
+  instance_type:
+    type: string
+    description: Type of the instance to be created.
+    default: m1.small
+
+  image_id:
+    type: string
+    description: ID of the image to use for the instance to be created.
+    default: cirros-0.3.2-x86_64-uec
+    constraints:
+      - custom_constraint: glance.image
+
+  subnet:
+    type: string
+    description: Type of the instance to be created.
+    default: private-subnet
+    constraints:
+      - custom_constraint: neutron.subnet
+
+  network:
+    type: string
+    description: Type of the instance to be created.
+    default: private
+    constraints:
+      - custom_constraint: neutron.network
+
+  port:
+    type: string
+    description: Type of the instance to be created.
+    default: 9647d435-1905-45f5-84fc-efc8c0cc743b2
+    constraints:
+      - custom_constraint: neutron.port
+
+  router:
+    type: string
+    description: Type of the instance to be created.
+    default: router1
+    constraints:
+      - custom_constraint: neutron.router
+
+resources:
+  test:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: image_id }
+      flavor: { get_param: instance_type }
+      key_name: lxiaojun

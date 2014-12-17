@@ -1,0 +1,4 @@
+heat_template_version: 2013-05-23
+resources:
+  server:
+    resource_id: 5350e4f1-da46-4a57-b845-ca7a687ccade

@@ -1,0 +1,64 @@
+heat_template_version: 2013-05-23
+
+description: >
+  A HOT template that holds a VM instance with an attached
+  Cinder volume.  The VM does nothing, it is only created.
+
+parameters:
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the instance
+  flavor:
+    type: string
+    description: Flavor for the instance to be created
+    default: m1.small
+    constraints:
+      - allowed_values: [m1.tiny, m1.small, m1.medium, m1.large]
+        description: Value must be one of 'm1.tiny', 'm1.small', 'm1.medium', or 'm1.large'
+  image:
+    type: string
+    default: fedora-20.x86_64
+    description: >
+      Name or ID of the image to use for the instance.
+      You can get the default from
+      http://cloud.fedoraproject.org/fedora-20.x86_64.qcow2
+      There is also
+      http://cloud.fedoraproject.org/fedora-20.i386.qcow2
+      Any image should work since this template
+      does not ask the VM to do anything.
+  meter_group:
+    type: string
+    description: value of VM's metering.instgroup metadatum
+    default: igrp
+  network:
+    type: string
+    description: the network for the VM
+    default: private
+
+resources:
+  my_instance:
+    type: OS::Nova::Server
+    properties:
+      key_name: { get_param: key_name }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks: [{network: {get_param: network} }]
+      metadata:
+        metering.instgroup: { get_param: meter_group }
+
+  my_vol:
+    type: OS::Cinder::Volume
+    properties:
+      size: 1
+
+  vol_att:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: { get_resource: my_instance }
+      volume_id: { get_resource: my_vol }
+      mountpoint: /dev/vdb
+
+outputs:
+  instance_networks:
+    description: The IP addresses of the deployed instance
+    value: { get_attr: [my_instance, networks] }

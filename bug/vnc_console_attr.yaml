@@ -1,0 +1,14 @@
+heat_template_version: 2013-05-23
+resources:
+  my_instance:
+    type: OS::Nova::Server
+    properties:
+      key_name: lxiaojun
+      image: cirros-0.3.2-x86_64-uec
+      flavor: m1.nano
+      networks:
+        - network: private
+      console_type: rdp-html5
+outputs:
+    console:
+        value: {get_attr: [my_instance, console_url, spice-html5]}
