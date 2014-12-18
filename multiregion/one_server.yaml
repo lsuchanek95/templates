@@ -1,0 +1,14 @@
+heat_template_version: 2013-05-23
+parameters:
+  flavor:
+    type: string
+    default: m1.nano
+  image:
+    type: string
+    default: cirros-0.3.2-x86_64-uec
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: {get_param: flavor}
