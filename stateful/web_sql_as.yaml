@@ -59,7 +59,8 @@ resources:
         - name: db_password
         - name: host
       group: script
-      config: { get_file: https://github.com/lynic/templates/stateful/db-master.sh }
+      config:
+        get_file: https://raw.githubusercontent.com/lynic/templates/master/stateful/db-master.sh
 
   db-master-deployment:
     type: OS::Heat::SoftwareDeployment
@@ -81,7 +82,7 @@ resources:
       min_size: 1
       max_size: 2
       resource:
-        type: https://github.com/lynic/templates/stateful/web_server.yaml
+        type: https://raw.githubusercontent.com/lynic/templates/master/stateful/web_server.yaml
         properties:
           flavor: {get_param: web-flavor}
           image: {get_param: web-image}
@@ -140,7 +141,7 @@ resources:
       min_size: 1
       max_size: 5
       resource:
-        type: https://github.com/lynic/templates/stateful/db_server.yaml
+        type: https://raw.githubusercontent.com/lynic/templates/master/stateful/db_server.yaml
         properties:
           flavor: {get_param: db-flavor}
           image: {get_param: db-image}
