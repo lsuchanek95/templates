@@ -38,7 +38,7 @@ resources:
         - name: host
 #        - name: db_rootpassword
       group: script
-      config: { get_file: db-slave.sh }
+      config: { get_file: https://github.com/lynic/templates/stateful/db-slave.sh }
 
   db-slave-deployment:
     type: OS::Heat::SoftwareDeployment

@@ -59,7 +59,7 @@ resources:
         - name: db_password
         - name: host
       group: script
-      config: { get_file: db-master.sh }
+      config: { get_file: https://github.com/lynic/templates/stateful/db-master.sh }
 
   db-master-deployment:
     type: OS::Heat::SoftwareDeployment
@@ -81,7 +81,7 @@ resources:
       min_size: 1
       max_size: 2
       resource:
-        type: web_server.yaml
+        type: https://github.com/lynic/templates/stateful/web_server.yaml
         properties:
           flavor: {get_param: web-flavor}
           image: {get_param: web-image}
@@ -98,14 +98,14 @@ resources:
     properties:
       adjustment_type: change_in_capacity
       auto_scaling_group_id: {get_resource: web_server_group}
-      cooldown: 60
+      cooldown: 300
       scaling_adjustment: 1
   web_server_scaledown_policy:
     type: OS::Heat::ScalingPolicy
     properties:
       adjustment_type: change_in_capacity
       auto_scaling_group_id: {get_resource: web_server_group}
-      cooldown: 60
+      cooldown: 300
       scaling_adjustment: -1
   web_cpu_alarm_high:
     type: OS::Ceilometer::Alarm
@@ -140,7 +140,7 @@ resources:
       min_size: 1
       max_size: 5
       resource:
-        type: db_server.yaml
+        type: https://github.com/lynic/templates/stateful/db_server.yaml
         properties:
           flavor: {get_param: db-flavor}
           image: {get_param: db-image}
@@ -154,14 +154,14 @@ resources:
     properties:
       adjustment_type: change_in_capacity
       auto_scaling_group_id: {get_resource: db_slave_group}
-      cooldown: 60
+      cooldown: 300
       scaling_adjustment: 1
   db_server_scaledown_policy:
     type: OS::Heat::ScalingPolicy
     properties:
       adjustment_type: change_in_capacity
       auto_scaling_group_id: {get_resource: db_slave_group}
-      cooldown: 60
+      cooldown: 300
       scaling_adjustment: -1
   db_cpu_alarm_high:
     type: OS::Ceilometer::Alarm
@@ -226,7 +226,7 @@ resources:
       protocol: TCP
       monitors: [{get_resource: db-monitor}]
       subnet_id: {get_param: subnet_id}
-      lb_method: SOURCE_IP
+      lb_method: ROUND_ROBIN
       vip:
         protocol_port: 3306
   db-lb:
@@ -237,5 +237,9 @@ resources:
 
 outputs:
   wordpress_url:
-    value: http://{get_attr: [pool, vip, address]}/wordpress
-    description: The IP address of the load balancing pool
+    value:
+      str_replace:
+        template: http://url/wordpress
+        params:
+          url: {get_attr: [web-pool, vip, address]}
+    description: The url of wordpress blog
