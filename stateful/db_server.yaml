@@ -39,7 +39,7 @@ resources:
 #        - name: db_rootpassword
       group: script
       config:
-        get_file: https://raw.githubusercontent.com/lynic/templates/master/stateful/db-slave.sh
+        get_file: db-slave.sh
 
   db-slave-deployment:
     type: OS::Heat::SoftwareDeployment

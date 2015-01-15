@@ -41,40 +41,29 @@ parameters:
     default: Passw0rd
 
 resources:
-  db-master:
-    type: OS::Nova::Server
-    properties:
-      flavor: {get_param: db-flavor}
-      image: {get_param: db-image}
-      key_name: {get_param: key}
-      user_data_format: SOFTWARE_CONFIG
 
-  db-master-config:
-    type: OS::Heat::SoftwareConfig
+  web-monitor:
+    type: OS::Neutron::HealthMonitor
     properties:
-      inputs:
-#        - name: db_rootpassword
-        - name: db_name
-        - name: db_user
-        - name: db_password
-        - name: host
-      group: script
-      config:
-        get_file: https://raw.githubusercontent.com/lynic/templates/master/stateful/db-master.sh
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+  web-pool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: HTTP
+      monitors: [{get_resource: web-monitor}]
+      subnet_id: {get_param: subnet_id}
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: 80
+  web-lb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      protocol_port: 80
+      pool_id: {get_resource: web-pool}
 
-  db-master-deployment:
-    type: OS::Heat::SoftwareDeployment
-    properties:
-      config:
-        get_resource: db-master-config
-      server:
-        get_resource: db-master
-      input_values:
-#        db_rootpassword: { get_param: db_root_password }
-        db_name: { get_param: db_name }
-        db_user: { get_param: db_user }
-        db_password: { get_param: db_password }
-        host: { get_attr: [db-master, networks, private, 0]}
 
   web_server_group:
     type: OS::Heat::AutoScalingGroup
@@ -82,7 +71,7 @@ resources:
       min_size: 1
       max_size: 2
       resource:
-        type: https://raw.githubusercontent.com/lynic/templates/master/stateful/web_server.yaml
+        type: web_server.yaml
         properties:
           flavor: {get_param: web-flavor}
           image: {get_param: web-image}
@@ -111,7 +100,7 @@ resources:
   web_cpu_alarm_high:
     type: OS::Ceilometer::Alarm
     properties:
-      description: Scale-up if the average CPU > 50% for 1 minute
+      description: Scale-up if the average CPU > 80% for 1 minute
       meter_name: cpu_util
       statistic: avg
       period: 60
@@ -124,7 +113,7 @@ resources:
   web_cpu_alarm_low:
     type: OS::Ceilometer::Alarm
     properties:
-      description: Scale-down if the average CPU < 15% for 10 minutes
+      description: Scale-down if the average CPU < 30% for 1 minutes
       meter_name: cpu_util
       statistic: avg
       period: 60
@@ -135,13 +124,72 @@ resources:
       matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
       comparison_operator: lt
 
+
+  db-monitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+  db-pool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: TCP
+      monitors: [{get_resource: db-monitor}]
+      subnet_id: {get_param: subnet_id}
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: 3306
+  db-lb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      protocol_port: 3306
+      pool_id: {get_resource: db-pool}
+
+  db-master:
+    type: OS::Nova::Server
+    properties:
+      flavor: {get_param: db-flavor}
+      image: {get_param: db-image}
+      key_name: {get_param: key}
+      user_data_format: SOFTWARE_CONFIG
+
+  db-master-config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      inputs:
+#        - name: db_rootpassword
+        - name: db_name
+        - name: db_user
+        - name: db_password
+        - name: host
+      group: script
+      config:
+        get_file: db-master.sh
+
+  db-master-deployment:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config:
+        get_resource: db-master-config
+      server:
+        get_resource: db-master
+      input_values:
+#        db_rootpassword: { get_param: db_root_password }
+        db_name: { get_param: db_name }
+        db_user: { get_param: db_user }
+        db_password: { get_param: db_password }
+        host: { get_attr: [db-master, networks, private, 0]}
+
+
   db_slave_group:
     type: OS::Heat::AutoScalingGroup
     properties:
       min_size: 1
       max_size: 5
       resource:
-        type: https://raw.githubusercontent.com/lynic/templates/master/stateful/db_server.yaml
+        type: db_server.yaml
         properties:
           flavor: {get_param: db-flavor}
           image: {get_param: db-image}
@@ -167,7 +215,7 @@ resources:
   db_cpu_alarm_high:
     type: OS::Ceilometer::Alarm
     properties:
-      description: Scale-up if the average CPU > 50% for 1 minute
+      description: Scale-up if the average CPU > 80% for 1 minute
       meter_name: cpu_util
       statistic: avg
       period: 60
@@ -180,7 +228,7 @@ resources:
   db_cpu_alarm_low:
     type: OS::Ceilometer::Alarm
     properties:
-      description: Scale-down if the average CPU < 15% for 10 minutes
+      description: Scale-down if the average CPU < 30% for 1 minutes
       meter_name: cpu_util
       statistic: avg
       period: 60
@@ -191,50 +239,6 @@ resources:
       matching_metadata: {'metadata.user_metadata.stack': '44e01704-bb00-41e0-bdf0-84456cc4eb27'}
       comparison_operator: lt
 
-
-  web-monitor:
-    type: OS::Neutron::HealthMonitor
-    properties:
-      type: TCP
-      delay: 5
-      max_retries: 5
-      timeout: 5
-  web-pool:
-    type: OS::Neutron::Pool
-    properties:
-      protocol: HTTP
-      monitors: [{get_resource: web-monitor}]
-      subnet_id: {get_param: subnet_id}
-      lb_method: ROUND_ROBIN
-      vip:
-        protocol_port: 80
-  web-lb:
-    type: OS::Neutron::LoadBalancer
-    properties:
-      protocol_port: 80
-      pool_id: {get_resource: web-pool}
-
-  db-monitor:
-    type: OS::Neutron::HealthMonitor
-    properties:
-      type: TCP
-      delay: 5
-      max_retries: 5
-      timeout: 5
-  db-pool:
-    type: OS::Neutron::Pool
-    properties:
-      protocol: TCP
-      monitors: [{get_resource: db-monitor}]
-      subnet_id: {get_param: subnet_id}
-      lb_method: ROUND_ROBIN
-      vip:
-        protocol_port: 3306
-  db-lb:
-    type: OS::Neutron::LoadBalancer
-    properties:
-      protocol_port: 3306
-      pool_id: {get_resource: db-pool}
 
 outputs:
   wordpress_url:
