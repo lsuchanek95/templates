@@ -19,6 +19,10 @@ parameters:
     type: string
     default: password
     hidden: true
+  network_region_one:
+    type: string
+  network_region_two:
+    type: string
 resources:
   stack_region_1:
     type: OS::Heat::Stack
@@ -34,6 +38,7 @@ resources:
         db_user: {get_param: db_user}
         db_name: {get_param: db_name}
         db_password: {get_param: db_password}
+        network: {get_param: network_region_one}
 
 
   stack_region_2:
@@ -49,4 +54,5 @@ resources:
         db_user: {get_param: db_user}
         db_name: {get_param: db_name}
         db_password: {get_param: db_password}
+        network: {get_param: network_region_two}
 

@@ -18,6 +18,8 @@ resources:
       flavor: {get_param: flavor}
       image: {get_param: image}
       key_name: {get_param: key}
+      networks:
+       - network: {get_param: network}
       user_data_format: SOFTWARE_CONFIG
 
   db-config:

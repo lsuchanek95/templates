@@ -18,6 +18,8 @@ parameters:
     type: string
   db_password:
     type: string
+  network:
+    type: string
 
 resources:
   web-server:
@@ -27,6 +29,8 @@ resources:
       image: {get_param: image}
       key_name: {get_param: key}
       user_data_format: SOFTWARE_CONFIG
+      networks:
+       - network: {get_param: network}
 
   web-config:
     type: OS::Heat::SoftwareConfig
