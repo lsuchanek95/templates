@@ -47,5 +47,4 @@ resources:
 
 outputs:
   ip:
-    type: string
     value: {get_attr: [db-server, networks, private, 0]}
