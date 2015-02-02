@@ -1,0 +1,39 @@
+heat_template_version: 2013-05-23
+parameters:
+  image:
+    type: string
+    description: Image used for servers
+  key:
+    type: string
+    description: SSH key to connect to the servers
+  flavor:
+    type: string
+    description: flavor used by the web servers
+  subnet_id:
+    type: string
+    description: subnet on which the load balancer will be located
+  network_id:
+    type: string
+    description: network that server will be located
+
+resources:
+  stack_region_1:
+    type: OS::Heat::Stack
+    properties:
+      context:
+        region_name: RegionOne
+      template: {get_file: one_server.yaml}
+      parameters:
+        flavor: {get_param: flavor}
+        image: {get_param: image}
+
+  stack_region_2:
+    type: OS::Heat::Stack
+    properties:
+      context:
+        region_name: RegionTwo
+      template: {get_file: one_server.yaml}
+      parameters:
+        flavor: {get_param: flavor}
+        image: {get_param: image}
+

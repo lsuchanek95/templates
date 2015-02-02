@@ -1,0 +1,28 @@
+heat_template_version: 2013-05-23
+parameters:
+  flavor:
+    type: string
+    default: m1.nano
+  image:
+    type: string
+    default: cirros-0.3.2-x86_64-uec
+  vol_size:
+    type: number
+    default: 1
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: {get_param: flavor}
+  vol:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: vol_size}
+  vol_att:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: {get_resource: server}
+      volume_id: {get_resource: vol}
+      mountpoint: /dev/vdb
+
