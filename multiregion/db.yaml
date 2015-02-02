@@ -45,3 +45,7 @@ resources:
         db_user: { get_param: db_user }
         db_password: { get_param: db_password }
 
+outputs:
+  ip:
+    type: string
+    value: {get_attr: [db-server, networks, private, 0]}
