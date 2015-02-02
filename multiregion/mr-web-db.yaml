@@ -1,0 +1,52 @@
+heat_template_version: 2013-05-23
+parameters:
+  image:
+    type: string
+    default: fedora-sc
+  flavor:
+    type: string
+    default: m1.small
+  key:
+    type: string
+    default: lxiaojun
+  db_name:
+    type: string
+    default: wordpress
+  db_user:
+    type: string
+    default: wordpress
+  db_password:
+    type: string
+    default: password
+    hidden: true
+resources:
+  stack_region_1:
+    type: OS::Heat::Stack
+    properties:
+      context:
+        region_name: RegionOne
+      template: {get_file: web.yaml}
+      parameters:
+        flavor: {get_param: flavor}
+        image: {get_param: image}
+        key_name: {get_param: key}
+        db_host: {get_attr: [stack_region_2, outputs, ip]}
+        db_user: {get_param: db_user}
+        db_name: {get_param: db_name}
+        db_password: {get_param: db_password}
+
+
+  stack_region_2:
+    type: OS::Heat::Stack
+    properties:
+      context:
+        region_name: RegionTwo
+      template: {get_file: db.yaml}
+      parameters:
+        flavor: {get_param: flavor}
+        image: {get_param: image}
+        key_name: {get_param: key}
+        db_user: {get_param: db_user}
+        db_name: {get_param: db_name}
+        db_password: {get_param: db_password}
+

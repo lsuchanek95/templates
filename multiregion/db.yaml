@@ -1,0 +1,45 @@
+heat_template_version: 2013-05-23
+description: A load-balancer server
+parameters:
+  image:
+    type: string
+    description: Image used for servers
+  key:
+    type: string
+    description: SSH key to connect to the servers
+  flavor:
+    type: string
+    description: flavor used by the servers
+
+resources:
+  db-server:
+    type: OS::Nova::Server
+    properties:
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: key}
+      user_data_format: SOFTWARE_CONFIG
+
+  db-config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      inputs:
+        - name: db_name
+        - name: db_user
+        - name: db_password
+      group: script
+      config:
+        get_file: db.sh
+
+  db-slave-deployment:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config:
+        get_resource: db-config
+      server:
+        get_resource: db-server
+      input_values:
+        db_name: { get_param: db_name }
+        db_user: { get_param: db_user }
+        db_password: { get_param: db_password }
+
