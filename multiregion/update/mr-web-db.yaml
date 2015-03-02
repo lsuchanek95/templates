@@ -1,0 +1,79 @@
+heat_template_version: 2013-05-23
+parameters:
+  image:
+    type: string
+    default: fedora-wp
+  flavor:
+    type: string
+    default: m1.small
+  key:
+    type: string
+    default: lxiaojun
+  db_name:
+    type: string
+    default: wordpress
+  db_user:
+    type: string
+    default: wordpress
+  db_password:
+    type: string
+    default: password
+    hidden: true
+  web_region:
+    type: string
+    default: RegionOne
+  web_network:
+    type: string
+    default: flat1
+  db_region:
+    type: string
+    default: RegionTwo
+  db_network:
+    type: string
+    default: flat2
+
+resources:
+  web_stack:
+    type: OS::Heat::Stack
+    properties:
+      context:
+        region_name: {get_param: web_region}
+      template: {get_file: web.yaml}
+      parameters:
+        flavor: {get_param: flavor}
+        image: {get_param: image}
+        key: {get_param: key}
+        db_host: {get_attr: [db_stack, outputs, ip]}
+        db_user: {get_param: db_user}
+        db_name: {get_param: db_name}
+        db_password: {get_param: db_password}
+        network: {get_param: web_network}
+
+  db_stack:
+    type: OS::Heat::Stack
+    properties:
+      context:
+        region_name: {get_param: db_region}
+      template: {get_file: db.yaml}
+      parameters:
+        flavor: {get_param: flavor}
+        image: {get_param: image}
+        key: {get_param: key}
+        db_user: {get_param: db_user}
+        db_name: {get_param: db_name}
+        db_password: {get_param: db_password}
+        network: {get_param: db_network}
+
+outputs:
+  db_ip:
+    value: {get_attr: [db_stack, outputs, ip]}
+  web_ip:
+    value: {get_attr: [web_stack, outputs, ip]}
+  wordpress:
+    value:
+      str_replace:
+        template: |
+          http://webip/wordpress/
+        params:
+          webip: {get_attr: [web_stack, outputs, ip]}
+
