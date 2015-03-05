@@ -1,0 +1,16 @@
+heat_template_version: 2013-05-23
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      image: cirros-0.3.2-x86_64-uec
+      flavor: m1.nano
+  vol:
+    type: OS::Cinder::Volume
+    properties:
+      size: 1
+  att:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: {get_resource: server}
+      volume_id: {get_resource: vol}
