@@ -3,12 +3,15 @@ parameters:
   image:
     type: string
     default: cirros-0.3.2-x86_64-uec
+  flavor:
+    type: string
+    default: m1.tiny
 resources:
   server:
     type: OS::Nova::Server
     properties:
-      image: cirros-0.3.2-x86_64-uec
-      flavor: m1.nano
+      image: {get_param: image}
+      flavor: {get_param: flavor}
   vol:
     type: OS::Cinder::Volume
     properties:
