@@ -1,0 +1,12 @@
+heat_template_version: 2013-05-23
+parameters:
+  image:
+    type: string
+  flavor:
+    type: string
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      flavor: {get_param: flavor}
+      image: {get_param: image}
