@@ -1,0 +1,26 @@
+heat_template_version: 2013-05-23
+parameters:
+  image:
+    type: string
+  flavor:
+    type: string
+  key:
+    type: string
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: key}
+      user_data_format: SOFTWARE_CONFIG
+  sc:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: {get_file: test.sh}
+  sc-deploy:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config: {get_resource: sc}
+      server: {get_resource: server} 
