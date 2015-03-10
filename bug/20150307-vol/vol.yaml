@@ -1,0 +1,25 @@
+heat_template_version: 2013-05-23
+parameters:
+  image:
+    type: string
+  flavor:
+    type: string
+  network:
+    type: string
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: {get_param: flavor}
+      networks:
+       - network: {get_param: network}
+  vol:
+    type: OS::Cinder::Volume
+    properties:
+      size: 1
+  att:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: {get_resource: server}
+      volume_id: {get_resource: vol}

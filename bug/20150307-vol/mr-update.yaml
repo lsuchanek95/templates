@@ -1,0 +1,25 @@
+heat_template_version: 2013-05-23
+parameters:
+ flavor:
+    type: string
+    default: m1.nano
+ image:
+    type: string
+    default: snaptest
+ network:
+    type: string
+    default: private
+ region:
+    type: string
+    default: RegionTwo
+resources:
+   stack:
+    type: OS::Heat::Stack
+    properties:
+      context:
+        region_name: {get_param: region}
+      template: {get_file: vol-update.yaml}
+      parameters:
+        flavor: {get_param: flavor}
+        image: {get_param: image}
+        network: {get_param: network}
