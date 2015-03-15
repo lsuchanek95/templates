@@ -1,0 +1,9 @@
+heat_template_version: 2013-05-23
+resources:
+  res_grp:
+    type: OS::Heat::ResourceGroup
+    properties:
+      resource_def:
+        type: nest.yaml
+      count: 1
+    

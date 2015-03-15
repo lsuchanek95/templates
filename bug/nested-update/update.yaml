@@ -8,7 +8,7 @@ resources:
       max_size: 0
       min_size: 0
       resource:
-        type: OS::Heat::RandomString
+        type: nest.yaml
   test_policy:
     type: OS::Heat::ScalingPolicy
     properties:
