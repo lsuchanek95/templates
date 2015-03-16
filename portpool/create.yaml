@@ -4,27 +4,27 @@ parameters:
     type: string
     default: f3bc1389-2b0a-45d4-a2d8-68ba26703185
 resources:
-  port1:
-    type: OS::Neutron::Port
-    properties:
-      network: {get_param: network} 
-  port2:
-    type: OS::Neutron::Port
-    properties:
-      network: {get_param: network} 
   portpool:
     type: OS::Neutron::PortPool
     properties:
-      pool:
-        - port: {get_resource: port1}
-        - port: {get_resource: port2}
-  server:
-    type: OS::Nova::Server
-    properties:
-      image: cirros-0.3.2-x86_64-uec
-      flavor: m1.nano
-      networks:
-        - port: {get_attr: [portpool, avail_port]}
+      pool: {get_file: ports.json}
+#        - port: {get_resource: port1}
+#        - port: {get_resource: port2}
+#  server:
+#    type: OS::Nova::Server
+#    properties:
+#      image: cirros-0.3.2-x86_64-uec
+#      flavor: m1.nano
+#      networks:
+#        - port: {get_attr: [portpool, avail_port]}
+#  port1:
+#    type: OS::Neutron::Port
+#    properties:
+#      network: {get_param: network} 
+#  port2:
+#    type: OS::Neutron::Port
+#    properties:
+#      network: {get_param: network} 
 outputs:
   avail_pool:
     value: {get_attr: [portpool, avail_port_list]}
