@@ -7,9 +7,9 @@ resources:
   portpool:
     type: OS::Neutron::PortPool
     properties:
-      pool: {get_file: ports.json}
-#        - port: {get_resource: port1}
-#        - port: {get_resource: port2}
+      pool:
+        - port: {get_resource: port1}
+        - port: {get_resource: port2}
 #  server:
 #    type: OS::Nova::Server
 #    properties:
@@ -17,14 +17,14 @@ resources:
 #      flavor: m1.nano
 #      networks:
 #        - port: {get_attr: [portpool, avail_port]}
-#  port1:
-#    type: OS::Neutron::Port
-#    properties:
-#      network: {get_param: network} 
-#  port2:
-#    type: OS::Neutron::Port
-#    properties:
-#      network: {get_param: network} 
+  port1:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_param: network} 
+  port2:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_param: network} 
 outputs:
   avail_pool:
     value: {get_attr: [portpool, avail_port_list]}
