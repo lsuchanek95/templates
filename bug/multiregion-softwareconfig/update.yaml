@@ -15,7 +15,7 @@ resources:
     properties:
       context:
         region_name: RegionOne
-      template: web.yaml
+      template: {get_file: web.yaml}
       parameters:
         flavor: {get_param: flavor}
         image: {get_param: image}
