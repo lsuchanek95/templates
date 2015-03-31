@@ -1,0 +1,7 @@
+heat_template_version: 2014-10-16
+resources:
+  randstr:
+    type: OS::Heat::RandomString
+outputs:
+  rand_val:
+    value: {get_attr: [randstr, value]}
