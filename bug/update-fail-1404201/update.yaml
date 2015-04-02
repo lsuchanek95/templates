@@ -1,0 +1,19 @@
+heat_template_version: 2013-05-23
+
+resources: 
+  rg: 
+    type: OS::Heat::ResourceGroup
+    properties: 
+      count: 3
+      resource_def: 
+        type: OS::Heat::RandomString
+
+outputs: 
+  resource1_id: 
+    value: { get_attr: [rg, resource.0] }
+  resource2_id: 
+    value: { get_attr: [rg, resource.1] }
+  resource1_value: 
+    value: { get_attr: [rg, resource.0.value] }
+  resource2_value: 
+    value: { get_attr: [rg, resource.1.value] }
