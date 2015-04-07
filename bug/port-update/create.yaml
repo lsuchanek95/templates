@@ -3,18 +3,23 @@ parameters:
   flavor:
     type: string
     default: m1.nano
+  image:
+    type: string
+    default: cirros-0.3.2-x86_64-uec
 
 resources:
   port:
     type: OS::Neutron::Port
     properties:
       network: private
+      replacement_policy: AUTO
 
   server:
     type: OS::Nova::Server
     properties:
-      image: cirros-0.3.2-x86_64-uec
+      image: {get_param: image}
       flavor: {get_param: flavor}
+      image_update_policy: REBUILD
       networks:
         - port: {get_resource: port}
 
