@@ -21,7 +21,7 @@ resources:
       flavor: {get_param: flavor}
       image_update_policy: REBUILD
       networks:
-        - port: {get_resource: port}
+        - port: d493ae33-369b-43ce-b65b-1b471deb2f94
 
 outputs:
   port_id:

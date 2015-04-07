@@ -1,0 +1,12 @@
+heat_template_version: 2013-05-23
+resources:
+  keypair:
+    type: OS::Nova::KeyPair
+    properties:
+      name: newkey
+      save_private_key: True
+outputs:
+  private:
+    value: {get_attr: [keypair, private_key]}
+  public:
+    value: {get_attr: [keypair, public_key]}

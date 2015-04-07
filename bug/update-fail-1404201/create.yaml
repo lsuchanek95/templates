@@ -1,0 +1,9 @@
+heat_template_version: 2013-05-23
+
+resources: 
+  rg: 
+    type: OS::Heat::RandomString
+
+outputs: 
+  resource_id: 
+    value: { get_resource: rg }
