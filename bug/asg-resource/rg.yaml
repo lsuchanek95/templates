@@ -1,0 +1,10 @@
+heat_template_version: 2013-05-23
+resources:
+  asg:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 2
+      desired_capacity: 1
+      resource:
+        type: OS::Heat::RandomString
