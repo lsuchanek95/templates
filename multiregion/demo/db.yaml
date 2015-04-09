@@ -1,0 +1,54 @@
+heat_template_version: 2013-05-23
+description: A load-balancer server
+parameters:
+  image:
+    type: string
+    description: Image used for servers
+  key:
+    type: string
+    description: SSH key to connect to the servers
+  flavor:
+    type: string
+    description: flavor used by the servers
+  network:
+    type: string
+  db_name:
+    type: string
+  db_user:
+    type: string
+  db_password:
+    type: string
+  #db_ip:
+  #  type: string
+
+resources:
+  db-server:
+    type: OS::Nova::Server
+    properties:
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: key}
+      networks:
+       - network: {get_param: network}
+      config_drive: true
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            systemctl enable mariadb.service
+            systemctl restart mariadb.service
+            cat << EOF | mysql -u root
+            CREATE DATABASE $db_name;
+            GRANT ALL PRIVILEGES ON $db_name.* TO "$db_user"@"%" IDENTIFIED BY "$db_password";
+            FLUSH PRIVILEGES;
+            EXIT
+            EOF
+          params:
+            $db_name: {get_param: db_name}
+            $db_user: {get_param: db_user}
+            $db_password: {get_param: db_password}
+
+outputs:
+  ip:
+    value: {get_attr: [db-server, networks, {get_param: network}, 0]}

@@ -1,0 +1,72 @@
+heat_template_version: 2013-05-23
+description: A load-balancer server
+parameters:
+  image:
+    type: string
+    description: Image used for servers
+  key:
+    type: string
+    description: SSH key to connect to the servers
+  flavor:
+    type: string
+    description: flavor used by the servers
+  db_name:
+    type: string
+  db_user:
+    type: string
+  db_password:
+    type: string
+  network:
+    type: string
+  db_host:
+    type: string
+  #web_ip:
+  #  type: string
+
+resources:
+  web-server:
+    type: OS::Nova::Server
+    properties:
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: key}
+      networks:
+       - network: {get_param: network}
+      config_drive: true
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            #yum -y install httpd wordpress
+            systemctl enable httpd.service
+            systemctl restart httpd.service
+            setsebool -P httpd_can_network_connect_db=1
+
+            sed -i "/Deny from All/d" /etc/httpd/conf.d/wordpress.conf
+            sed -i "s/Require local/Require all granted/" /etc/httpd/conf.d/wordpress.conf
+            sed -i s/database_name_here/$db_name/ /etc/wordpress/wp-config.php
+            sed -i s/username_here/$db_user/ /etc/wordpress/wp-config.php
+            sed -i s/password_here/$db_password/ /etc/wordpress/wp-config.php
+            sed -i s/localhost/$db_host/ /etc/wordpress/wp-config.php
+
+            systemctl restart httpd.service
+          params:
+            $db_host: {get_param: db_host}
+            $db_name: {get_param: db_name}
+            $db_user: {get_param: db_user}
+            $db_password: {get_param: db_password}
+  vol:
+    type: OS::Cinder::Volume
+    properties:
+      size: 1
+  vol_att:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: {get_resource: web-server}
+      volume_id: {get_resource: vol}
+      mountpoint: /dev/vdb
+
+outputs:
+  ip:
+    value: {get_attr: [web-server, networks, {get_param: network}, 0]}
