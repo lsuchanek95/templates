@@ -1,0 +1,7 @@
+heat_template_version: 2013-05-23
+parameters:
+  vol:
+    type: number
+    constraints:
+      - min: 1
+        max: 2

@@ -1,0 +1,17 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "This template creates an instance and an EBS Volume.",
+
+  "Parameters" : {
+
+    "VolumeSize" : {
+      "Description" : "WikiDatabase Volume size",
+      "Type" : "Number",
+      "Default" : "1",
+      "MinValue" : "1",
+      "MaxValue" : "1024",
+      "ConstraintDescription" : "must be between 1 and 1024 Gb."
+    }
+  }
+}

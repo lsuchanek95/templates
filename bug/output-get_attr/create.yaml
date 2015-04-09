@@ -1,0 +1,10 @@
+heat_template_version: 2013-05-23
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      image: cirros-0.3.2-x86_64-uec
+      flavor: m1.nano
+outputs:
+  bad:
+    value: {get_attr: [server, bad]}
