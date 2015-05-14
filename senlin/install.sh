@@ -118,5 +118,5 @@ install_dir() {
 
 install_dir etc $CONF_PREFIX
 
-python setup.py install >/dev/null
-rm -rf build senlin.egg-info
+python setup.py develop >/dev/null
+#rm -rf build senlin.egg-info

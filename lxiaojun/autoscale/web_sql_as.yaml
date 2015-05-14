@@ -1,0 +1,75 @@
+heat_template_version: 2013-05-23
+description: AutoScaling Wordpress
+parameters:
+  web-image:
+    type: string
+    description: Image used for web servers
+    default: cirros-0.3.2-x86_64-uec
+  key:
+    type: string
+    description: SSH key to connect to the servers
+    default: lxiaojun
+  web-flavor:
+    type: string
+    description: flavor used by the web servers
+    default: m1.nano
+
+resources:
+
+  web_server_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 2
+      resource:
+        type: OS::Nova::Server
+        properties:
+          flavor: {get_param: web-flavor}
+          image: {get_param: web-image}
+          key_name: {get_param: key}
+          metadata: {"metering.stack": {get_param: "OS::stack_id"}}
+
+  web_server_scaleup_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: web_server_group}
+      cooldown: 300
+      scaling_adjustment: 1
+
+  web_server_scaledown_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: web_server_group}
+      cooldown: 300
+      scaling_adjustment: -1
+
+  web_cpu_alarm_high:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-up if the average CPU > 80% for 1 minute
+      meter_name: cpu_util
+      statistic: avg
+      period: 60
+      evaluation_periods: 1
+      threshold: 80
+      alarm_actions:
+        - {get_attr: [web_server_scaleup_policy, alarm_url]}
+      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
+      comparison_operator: gt
+
+  web_cpu_alarm_low:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-down if the average CPU < 30% for 1 minutes
+      meter_name: cpu_util
+      statistic: avg
+      period: 60
+      evaluation_periods: 1
+      threshold: 30
+      alarm_actions:
+        - {get_attr: [web_server_scaledown_policy, alarm_url]}
+      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}}
+      comparison_operator: lt
+
