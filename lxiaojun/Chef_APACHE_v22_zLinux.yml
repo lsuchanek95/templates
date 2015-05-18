@@ -1,0 +1,92 @@
+heat_template_version: 2013-05-23
+
+description: >
+  A template to install and configure Apache HTTP Server on a RedHat EL 6.x server.
+
+parameters:
+  Apache_HTTPD_ServerName:
+    type: string
+    description: Apache server name
+    default: webserver01
+  Apache_HTTPD_Listen:
+    type: string
+    description: The default listen port
+    default: 80
+
+resources:
+## REFERENCE {"External_Network":{"type": "OS::Neutron::Net", "properties": {"name": "External_Network", "network_id": "bd734d0b-483a-41c6-a809-38cad44dd3d2"}}}
+
+
+  one_init:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        runcmd:
+          - curl http://129.40.110.148:8888/chef/chef-11.6.2-1.el6.s390x.rpm -o /tmp/chef-11.6.2-1.el6.s390x.rpm
+          - rpm -Uvh /tmp/chef-11.6.2-1.el6.s390x.rpm
+          - curl http://129.40.110.148:8888/chef/chef-validator.pem -o /etc/chef/validation.pem
+          - mkdir -p /mnt/rhel64
+          - mount 129.40.45.3:/mnt/rhel64dvd /mnt/rhel64
+          - chef-client
+          - umount /mnt/rhel64
+
+          
+  two_init:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        chef:
+          install_type: "packages"
+          force_install: false
+          server_url: "https://129.40.110.148:9043"
+          environment: "_default"
+          validation_name: "chef-validator"
+          run_list:
+            - "recipe[apache22]"
+          initial_attributes:
+            apache:
+              httpserver:
+                v22:
+                  source_path: "http://129.40.110.148:8888/apache/v22/base/"
+                  httpd_conf:
+                    listen: {get_param: Apache_HTTPD_Listen}
+
+
+  server_init:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+      - config: {get_resource: one_init}
+      - config: {get_resource: two_init}
+ 
+ 
+  Apache_server:
+    type: OS::Nova::Server
+    properties:
+      networks:
+          - port: { get_resource: Apache_External_Network_port }
+      name: { get_param: Apache_HTTPD_ServerName }  # hostname to assign to the new VM
+      image: f48d307d-8a7e-4aa4-9ef2-ba5a10db6c09
+      flavor: m6.rds
+      config_drive: "True"
+      user_data_format: RAW
+      user_data:
+        get_resource: server_init
+
+
+  Apache_External_Network_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: 6afae325-649f-4c80-97c8-44e2bea0be9b
+
+outputs:
+  Apache_url:
+    description: Apache HTTP Server URL
+    value:
+      str_replace:
+        params:
+          _IP_address_: { get_attr: [ Apache_server, first_address ] }
+          _Apache_HTTPD_Listen_: { get_param: Apache_HTTPD_Listen }  # Apache listen port
+        template: The Apache server is now running at the following URL http://_IP_address_:_Apache_HTTPD_Listen_
+
+
