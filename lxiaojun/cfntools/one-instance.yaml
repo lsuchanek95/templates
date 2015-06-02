@@ -1,0 +1,27 @@
+HeatTemplateFormatVersion: 2012-12-12
+Parameters:
+  image:
+    Type: String
+    Default: cirros-0.3.2-x86_64-uec
+  flavor:
+    Type: String
+    Default: m1.nano
+Resources:
+  server:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          services:
+            httpd: {enabled: 'true', ensureRunning: 'true'}
+    Properties:
+      ImageId: {Ref: image}
+      InstanceType: {Ref: flavor}
+      UserData:
+        Fn::Base64:
+          Fn::Join:
+          - "\n"
+          - - "#!/bin/bash -v"
+            - ""
+            - /opt/aws/bin/cfn-init
+            - ""
