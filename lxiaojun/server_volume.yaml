@@ -12,7 +12,7 @@ resources:
     type: OS::Cinder::Volume
     properties:
       size: 1
-  cinder_volume:
+  volume_attachment:
     type: OS::Cinder::VolumeAttachment
     properties:
       volume_id: { get_resource: cinder_volume }
