@@ -1,0 +1,9 @@
+heat_template_version: 2013-05-23
+parameters:
+  len_one:
+    type: number
+resources:
+  one:
+    type: OS::Heat::RandomString
+    properties:
+      length: {get_param: len_one}

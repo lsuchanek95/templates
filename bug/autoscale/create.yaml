@@ -1,0 +1,14 @@
+heat_template_version: 2013-05-23
+resources:
+  asg:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 2
+      resource:
+        type: OS::Nova::Server
+        properties:
+          image: cirros-0.3.2-x86_64-uec
+          flavor: m1.nano
+          name: aa_%index%
+      

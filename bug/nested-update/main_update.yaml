@@ -1,0 +1,7 @@
+heat_template_version: 2013-05-23
+resources:
+  nested:
+    type: nested_two.yaml
+    properties:
+      len_one: 5
+      len_two: 5

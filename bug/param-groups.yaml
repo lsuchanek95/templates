@@ -1,0 +1,31 @@
+heat_template_version: 2014-10-16
+
+description: Example bad syntax for parameter groups
+
+parameter_groups:
+  label: configuration_data
+  description: configuration of the instances.
+  parameters:
+    key_name:
+      type: string
+      description: Name of keypair to assign to servers
+      default: userkey
+    image:
+      type: string
+      description: Name of image to use for servers
+      default: cirros
+    flavor:
+      type: string
+      description: Flavor to use for servers
+      default: m1.tiny
+  label: network_parameters
+  description: thse values are used to configure the network
+  parameters:
+    public_net_id:
+      type: string
+      description: ID of public network
+      default: xyz
+    private_net_id:
+      type: string
+      description: ID of private network
+      default: abc
