@@ -1,0 +1,25 @@
+heat_template_version: 2013-05-23
+parameters:
+  image:
+    type: string
+    default: cirros-0.3.4-x86_64-uec
+  flavor:
+    type: string
+    default: m1.nano
+  network:
+    type: string
+    default: private
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: {get_param: flavor}
+      networks:
+       - network: {get_param: network}
+      user_data_format: RAW
+      user_data:
+        get_file: test.sh
+outputs:
+  serverip:
+    value: {get_attr: [server, networks, {get_param: network}, 0]}

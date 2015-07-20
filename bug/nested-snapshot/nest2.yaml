@@ -4,4 +4,4 @@ resources:
     type: OS::Nova::Server
     properties:
       image: cirros-0.3.4-x86_64-uec
-      flavor: m1.nano
+      flavor: m1.tiny
