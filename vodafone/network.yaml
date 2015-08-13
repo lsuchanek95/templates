@@ -1,0 +1,105 @@
+heat_template_version: 2013-05-23
+parameters:
+  north_net_name:
+    type: string
+    default: north_net
+  west_net_name:
+    type: string
+    default: west_net
+  middle_net_name:
+    type: string
+    default: middle_net
+  ext_net_name:
+    type: string
+    default: ext_net
+  swift_net_name:
+    type: string
+    default: swift_net
+  ext_router_name:
+    type: string
+    default: ext_router
+  north_net_cidr:
+    type: string
+    default: 10.11.1.0/24
+  middle_net_cidr:
+    type: string
+    default: 10.11.2.0/24
+  west_net_cidr:
+    type: string
+    default: 10.11.3.0/24
+  ext_net_cidr:
+    type: string
+    default: 11.0.0.0/24
+  ext_net_begin:
+    type: string
+    default: 11.0.0.10
+  ext_net_end:
+    type: string
+    default: 11.0.0.100
+  swift_net_cidr
+    type: string
+    default: 12.0.0.0/24
+resources:
+  north_net:
+    type: OS::Neutron::Net
+    properties:
+      name: {get_param: north_net_name}
+      shared: True
+  north_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      cidr: {get_param: north_net_cidr}
+      network: {get_resource: north_net}
+  middle_net:
+    type: OS::Neutron::Net
+    properties:
+      name: {get_param: middle_net_name}
+      shared: True
+  middle_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      cidr: {get_param: middle_net_cidr}
+      # disable gateway
+      gateway: ~
+      network: {get_resource: middle_net}
+  west_net:
+    type: OS::Neutron::Net
+    properties:
+      name: {get_param: west_net_name}
+      shared: True
+  west_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      cidr: {get_param: west_net_cidr}
+      # disable gateway
+      gateway: ~
+      network: {get_resource: west_net}
+  ext_net:
+    type: OS::Neutron::ProviderNet
+    properties:
+      name: {get_param: ext_net_name}
+      network_type: flat
+      physical_network: default
+  ext_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      cidr: {get_param: ext_net_cidr}
+      allocation_pools:
+        - start: {get_param: ext_net_begin}
+          end: {get_param: ext_net_end}
+      enable_dhcp: False
+      network: {get_resource: ext_net}
+  ext_router:
+    type: OS::Neutron::Router
+    properties:
+      name: {get_param: ext_router_name}
+      ha: True
+      distributed: False
+      external_gateway_info:
+        network: {get_resource: ext_net}
+  ext_router_inf:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router: {get_resource: ext_router}
+      subnet: {get_resource: north_subnet}
+
