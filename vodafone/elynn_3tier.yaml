@@ -1,0 +1,397 @@
+heat_template_version: 2013-05-23
+
+description: Template for vodafone testing
+
+parameters:
+  image:
+    type: string
+    label: Image name or ID
+    description: Image to be used for server. Please use an Ubuntu based image.
+    default: vodafone-072415-3
+  flavor:
+    type: string
+    label: Flavor
+    description: Type of instance (flavor) to be used on the compute instance.
+    default: m1.small
+  key_name:
+    type: string
+    label: Key name
+    description: Name of key-pair to be installed on the compute instance.
+    default: oscpub
+  az1:
+    type: string
+    description: Availability zone 1
+    default: AZ1
+  az2:
+    type: string
+    description: Availability zone 2
+    default: AZ2
+  az1_web_network:
+    type: string
+    label: Neutron network name for the web tier
+    description: Public network to attach server to.
+    default: vlan160
+  az2_web_network:
+    type: string
+    label: Neutron network name for the web tier
+    description: Public network to attach server to.
+    default: vlan161
+  az1_app_network:
+    type: string
+    label: Neutron network name for the app tier
+    description: Public network to attach server to.
+    default: vlan160
+  az2_app_network:
+    type: string
+    label: Neutron network name for the app tier
+    description: Public network to attach server to.
+    default: vlan161
+  az1_db_network:
+    type: string
+    label: Neutron network name for the app tier
+    description: Public network to attach server to.
+    default: vlan160
+  az2_app_network:
+    type: string
+    label: Neutron network name for the app tier
+    description: Public network to attach server to.
+    default: vlan161
+  web_security_group:
+    type: string
+    description: Security group
+    default: web-sg
+  app_security_group:
+    type: string
+    description: Security group
+    default: app-sg
+  db_security_group:
+    type: string
+    description: Security group
+    default: db-sg
+  protocol_port:
+    type: string
+    description: Protocol port used by the server
+    default: 80
+  subnet:
+    type: string
+    description: subnet on which the load balancer will be located
+    default: 10.160/16
+  web_tier_lb_pool_id:
+    type: string
+    description: Load-balancer pool id of Web Server tier
+    default: 6546b4bc-2b07-49c2-91d3-273638df93e1
+  web_tier_lb_vip_ip:
+    type: string
+    description: Load-balancer IP address of Web Server tier
+    default: 172.17.228.50
+  app_tier_lb_pool_id:
+    type: string
+    description: Load-balancer pool id for Application Server tier
+    default: cc00eb25-292a-4d9e-8d48-1fd394b098f9
+  app_tier_lb_vip_ip:
+    type: string
+    description: Load-balancer IP address of Application Server tier
+    default: 172.17.234.50
+  app_tier_lb_pool_id:
+    type: string
+    description: Load-balancer pool id for Application Server tier
+    default: cc00eb25-292a-4d9e-8d48-1fd394b098f9
+  app_config:
+    type: string
+    description: the shell script text to use in the templates. Abstracted here so it doesn't need to be entered several times for multiple autoscaling groups
+    default: |
+      #!/bin/bash -ex
+
+      HOSTNAME=`hostname`
+      sed -i 's/127.0.1.1 vodafone/127.0.1.1 '$HOSTNAME'/g' /etc/hosts
+      sed -i 's/127.0.0.1 vodafone-db-asg/__mysql_ip__ vodafone-db-asg/g' /etc/hosts
+      sed -i 's/VODAFONE_DB_ASG=127.0.0.1/VODAFONE_DB_ASG=__mysql_ip__/g' /home/ubuntu/env
+      update-rc.d vodafone-app defaults
+      service vodafone-app start
+
+  web_config:
+    type: string
+    description: this is essentially a dummy proxy server to act as a web layer so we can have an additional load balanced tier. In a real application this would do something useful other than forward requests.
+    default: |
+      #!/bin/bash -ex
+
+      HOSTNAME=`hostname`
+      sed -i 's/127.0.1.1 vodafone/127.0.1.1 '$HOSTNAME'/g' /etc/hosts
+      sed -i 's/127.0.0.1 vodafone-app-asg/__lb_ip__ vodafone-app-asg/g' /etc/hosts
+      sed -i 's/VODAFONE_APP_ASG=127.0.0.1/VODAFONE_APP_ASG=__lb_ip__/g' /home/ubuntu/env
+
+      update-rc.d nginx defaults
+      service nginx restart
+      update-rc.d vodafone-web defaults
+      service vodafone-web start
+
+  db_config:
+    type: string
+    description: db config
+    default: |
+      #!/bin/bash -ex
+
+      IP="__mysql_ip__"
+      HOSTNAME=`hostname`
+      sed -i 's/127.0.1.1 vodafone/127.0.1.1 '$HOSTNAME'/g' /etc/hosts
+      update-rc.d mysql defaults
+      service mysql restart
+      /home/ubuntu/app/bin/init_db.sh
+
+
+resources:
+  #db_security_group:
+  #    type: OS::Neutron::SecurityGroup
+  #    properties:
+  #      name: db_sg
+  #      rules:
+  #        - protocol: tcp
+  #          port_range_min: 3306
+  #          port_range_max: 3306
+  #        - protocol: tcp
+  #          port_range_min: 22
+  #          port_range_max: 22
+
+  #app_security_group:
+  #    type: OS::Neutron::SecurityGroup
+  #    properties:
+  #      name: app_sg
+  #      rules:
+  #        - protocol: tcp
+  #          port_range_min: 9000
+  #          port_range_max: 9000
+  #        - protocol: tcp
+  #          port_range_min: 22
+  #          port_range_max: 22
+
+  #web_security_group:
+  #    type: OS::Neutron::SecurityGroup
+  #    properties:
+  #      name: web_sg
+  #      rules:
+  #        - protocol: tcp
+  #          port_range_min: 80
+  #          port_range_max: 80
+  #        - protocol: tcp
+  #          port_range_min: 22
+  #          port_range_max: 22
+  #        - protocol: tcp
+  #          port_range_min: 443
+  #          port_range_max: 443
+
+  mysql_port_az1:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: az1_app_network }
+      security_groups:
+        #- { get_resource: db_security_group }
+        - { get_param: db_security_group }
+
+  mysql_port_az2:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: az2_app_network }
+      security_groups:
+        #- { get_resource: db_security_group }
+        - { get_param: db_security_group }
+
+  mysql_instance:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      networks:
+        - port: { get_resource: mysql_port_az1 }
+        - port: { get_resource: mysql_port_az2 }
+      config_drive: true
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          params:
+            __mysql_ip__: 80
+          template: { get_param: db_config }
+
+  webmonitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+
+  #webpool:
+  #  type: OS::Neutron::Pool
+  #  properties:
+  #    protocol: TCP
+  #    monitors: [{get_resource: webmonitor}]
+  #    subnet: {get_param: subnet}
+  #    lb_method: ROUND_ROBIN
+  #    vip:
+  #      protocol_port: {get_param: protocol_port}
+
+  appmonitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+
+  #apppool:
+  #  type: OS::Neutron::Pool
+  #  properties:
+  #    protocol: TCP
+  #    monitors: [{get_resource: appmonitor}]
+  #    subnet: {get_param: subnet}
+  #    lb_method: ROUND_ROBIN
+  #    vip:
+  #      protocol_port: 9000
+
+  asgappaz1:
+    type: asg.yaml
+    properties:
+      min_size: 1
+      max_size: 3
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: key_name}
+#      network: {get_param: az1_app_network}
+      up_net: {get_param: az1_app_network}
+      down_net: {get_param: az1_db_network}
+      #pool_id: {get_resource: apppool}
+      pool_id: {get_param: app_tier_lb_pool_id}
+      metering_az: "appaz1"
+      az: {get_param: az1}
+      #security_group: { get_resource: app_security_group }
+      security_group: { get_param: app_security_group }
+      #protocol_port: {get_param: protocol_port}
+      protocol_port: 9000
+      user_data:
+        str_replace:
+          params:
+            __mysql_ip__: { get_attr: [mysql_port_az1, fixed_ips, 0, ip_address] }
+          template: { get_param: app_config }
+
+  asgappaz2:
+    type: asg.yaml
+    properties:
+      min_size: 1
+      max_size: 3
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: key_name}
+      network: {get_param: az2_app_network}
+      #pool_id: {get_resource: apppool}
+      pool_id: {get_param: app_tier_lb_pool_id}
+      metering_az: "appaz2"
+      az: {get_param: az2}
+      #security_group: { get_resource: app_security_group }
+      security_group: { get_param: app_security_group }
+      #protocol_port: {get_param: protocol_port}
+      protocol_port: 9000
+      user_data:
+        str_replace:
+          params:
+            __mysql_ip__: { get_attr: [mysql_port_az1, fixed_ips, 0, ip_address] }
+          template: { get_param: app_config }
+
+  asgwebaz1:
+    type: asg.yaml
+    properties:
+      min_size: 1
+      max_size: 3
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: key_name}
+      network: {get_param: az1_web_network}
+      #pool_id: {get_resource: webpool}
+      pool_id: {get_param: web_tier_lb_pool_id}
+      metering_az: "webaz1"
+      az: {get_param: az1}
+      #security_group: { get_resource: web_security_group }
+      security_group: { get_param: web_security_group }
+      protocol_port: {get_param: protocol_port}
+      user_data:
+        str_replace:
+          params:
+            #__lb_ip__: {get_attr: [apppool, vip, address]}
+            __lb_ip__: {get_param: app_tier_lb_vip_ip}
+            __lb_port__: { get_param: protocol_port }
+
+          template: { get_param: web_config }
+
+  asgwebaz2:
+    type: asg.yaml
+    properties:
+      min_size: 1
+      max_size: 3
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: key_name}
+      network: {get_param: az2_web_network}
+      #pool_id: {get_resource: webpool}
+      pool_id: {get_param: web_tier_lb_pool_id}
+      metering_az: "webaz2"
+      az: {get_param: az2}
+      #security_group: { get_resource: web_security_group }
+      security_group: { get_param: web_security_group }
+      protocol_port: {get_param: protocol_port}
+      user_data:
+        str_replace:
+          params:
+            #__lb_ip__: {get_attr: [apppool, vip, address]}
+            __lb_ip__: {get_param: app_tier_lb_vip_ip}
+            __lb_port__: { get_param: protocol_port }
+
+          template: { get_param: web_config }
+
+  #applb:
+  #  type: OS::Neutron::LoadBalancer
+  #  properties:
+  #    #protocol_port: {get_param: protocol_port}
+  #    protocol_port: 9000
+  #    pool_id: {get_resource: apppool}
+
+  #weblb:
+  #  type: OS::Neutron::LoadBalancer
+  #  properties:
+  #    protocol_port: {get_param: protocol_port}
+  #    pool_id: {get_resource: webpool}
+
+outputs:
+  name:
+    description: Name of the MySQL instance.
+    value: { get_attr: [mysql_instance, name] }
+  mysql_az1_ip:
+    description: The IP address of the MySQL instance in AZ1.
+    value: { get_attr: [mysql_port_az1, fixed_ips, 0, ip_address] }
+  mysql_az2_ip:
+    description: The IP address of the MySQL instance in AZ2.
+    value: { get_attr: [mysql_port_az2, fixed_ips, 0, ip_address] }
+  #app_pool_ip_address:
+  #  value: {get_attr: [apppool, vip, address]}
+  #  description: The IP address of the App load balancing pool
+  #web_pool_ip_address:
+  #  value: {get_attr: [webpool, vip, address]}
+  #  description: The IP address of the Web load balancing pool
+  ceilometer_query:
+    value:
+      str_replace:
+        template: >
+          ceilometer statistics -m cpu_util
+          -q metadata.user_metadata.stack=stackval -p 600 -a avg
+        params:
+          stackval: { get_param: "OS::stack_id" }
+    description: >
+      This is a Ceilometer query for statistics on the cpu_util meter
+      Samples about OS::Nova::Server instances in this stack.  The -q
+      parameter selects Samples according to the subject's metadata.
+      When a VM's metadata includes an item of the form metering.X=Y,
+      the corresponding Ceilometer resource has a metadata item of the
+      form user_metadata.X=Y and samples about resources so tagged can
+      be queried with a Ceilometer query term of the form
+      metadata.user_metadata.X=Y.  In this case the nested stacks give
+      their VMs metadata that is passed as a nested stack parameter,
+      and this stack passes a metadata of the form metering.stack=Y,
+      where Y is this stack's ID.

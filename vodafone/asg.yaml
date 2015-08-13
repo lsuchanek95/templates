@@ -1,0 +1,111 @@
+heat_template_version: 2013-05-23
+description: A template for an auto scaling group.
+parameters:
+  min_size:
+    type: string
+    description: Minimum size of the gorup
+    default: 1
+  max_size:
+    type: string
+    description: Maximum size of the gorup
+    default: 3
+  image:
+    type: string
+    description: Image used for servers
+  key_name:
+    type: string
+    description: SSH key to connect to the servers
+  flavor:
+    type: string
+    description: flavor used by the servers
+  pool_id:
+    type: string
+    description: Pool to contact
+  user_data:
+    type: string
+    description: Server user_data
+    default: "abc"
+  up_net:
+    type: string
+    description: Network used by the server
+  down_net:
+    type: string
+    description: Network used by the server
+  swift_net:
+    type: string
+    description: Network used by the server
+  az:
+    type: string
+    description: Availability zone of the server
+  security_group:
+    type: string
+    description: Security group of the scaling group server
+  protocol_port:
+    type: string
+    description: Protocol port used by the server
+  metering_az:
+    type: string
+    description: mysql ip address reachable from this auto scaling group
+
+resources:
+  asg:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 3
+      resource:
+        type: server.yaml
+        properties:
+          user_data: { get_param: user_data }
+          flavor: {get_param: flavor}
+          image: {get_param: image}
+          key_name: {get_param: key_name}
+          up_net: {get_param: up_net}
+          down_net: {get_param: down_net}
+          swift_net: {get_param: swift_net}
+          pool_id: {get_param: pool_id}
+          metadata: {"metering.stack": {get_param: "OS::stack_id"}, "metering.az": "{get_param: metering_az}" }
+          az: {get_param: az}
+          security_group: {get_param: security_group}
+          protocol_port: {get_param: protocol_port}
+
+  web_server_scaleup_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: asg}
+      cooldown: 60
+      scaling_adjustment: 1
+  web_server_scaledown_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: asg}
+      cooldown: 60
+      scaling_adjustment: -1
+  cpu_alarm_high:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-up if the average CPU > 50% for 1 minute
+      meter_name: cpu_util
+      statistic: avg
+      period: 60
+      evaluation_periods: 1
+      threshold: 50
+      alarm_actions:
+        - {get_attr: [web_server_scaleup_policy, alarm_url]}
+      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}, "metadata.user_metadata.az": "{get_param: metering_az}" }
+      comparison_operator: gt
+  cpu_alarm_low:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-down if the average CPU < 15% for 2 minutes
+      meter_name: cpu_util
+      statistic: avg
+      period: 120
+      evaluation_periods: 1
+      threshold: 15
+      alarm_actions:
+        - {get_attr: [web_server_scaledown_policy, alarm_url]}
+      matching_metadata: {'metadata.user_metadata.stack': {get_param: "OS::stack_id"}, "metadata.user_metadata.az": "{get_param: metering_az}" }
+      comparison_operator: lt
