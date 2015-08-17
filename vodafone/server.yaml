@@ -49,18 +49,40 @@ resources:
       metadata: {get_param: metadata}
       user_data: {get_param: user_data}
       networks: [
-        {network: {get_param: swift_net}},
-        {network: {get_param: up_net}},
-        {network: {get_param: down_net}}
+        {port: {get_resource: swift_port}},
+        {port: {get_resource: up_port}},
+        {port: {get_resource: down_port}}
       ]
-      security_groups: [ {get_param: security_group} ]
+      #security_groups: [ {get_param: security_group} ]
       availability_zone: {get_param: az}
       config_drive: true
+  up_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: up_net }
+      security_groups:
+        #- { get_resource: db_security_group }
+        - { get_param: security_group }
+  down_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: down_net }
+      security_groups:
+        #- { get_resource: db_security_group }
+        - { get_param: security_group }
+  swift_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: swift_net }
+      security_groups:
+        #- { get_resource: db_security_group }
+        - { get_param: security_group }
   member:
     type: OS::Neutron::PoolMember
     properties:
       pool_id: {get_param: pool_id}
-      address: {get_attr: [server, first_address]}
+      #address: {get_attr: [server, first_address]}
+      address: {get_attr: [up_port, fixed_ips, 0, ip_address]}
       protocol_port: {get_param: protocol_port}
 
 outputs:

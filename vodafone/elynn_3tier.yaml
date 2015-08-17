@@ -7,7 +7,7 @@ parameters:
     type: string
     label: Image name or ID
     description: Image to be used for server. Please use an Ubuntu based image.
-    default: vodafone-072415-3
+    default: vodafone-081315
   flavor:
     type: string
     label: Flavor
@@ -17,15 +17,15 @@ parameters:
     type: string
     label: Key name
     description: Name of key-pair to be installed on the compute instance.
-    default: oscpub
+    default: vodafone-key
   az1:
     type: string
     description: Availability zone 1
-    default: AZ1
+    default: nova:test140.sce.ibm.com
   az2:
     type: string
     description: Availability zone 2
-    default: AZ2
+    default: nova:test141.sce.ibm.com
   web_network:
     type: string
     label: Neutron network name for the web tier
@@ -74,30 +74,6 @@ parameters:
     type: string
     description: Protocol port used by the server
     default: 9000
-  subnet:
-    type: string
-    description: subnet on which the load balancer will be located
-    default: 10.160/16
-  web_tier_lb_pool_id:
-    type: string
-    description: Load-balancer pool id of Web Server tier
-    default: 6546b4bc-2b07-49c2-91d3-273638df93e1
-  web_tier_lb_vip_ip:
-    type: string
-    description: Load-balancer IP address of Web Server tier
-    default: 172.17.228.50
-  app_tier_lb_pool_id:
-    type: string
-    description: Load-balancer pool id for Application Server tier
-    default: cc00eb25-292a-4d9e-8d48-1fd394b098f9
-  app_tier_lb_vip_ip:
-    type: string
-    description: Load-balancer IP address of Application Server tier
-    default: 172.17.234.50
-  app_tier_lb_pool_id:
-    type: string
-    description: Load-balancer pool id for Application Server tier
-    default: cc00eb25-292a-4d9e-8d48-1fd394b098f9
   app_config:
     type: string
     description: the shell script text to use in the templates. Abstracted here so it doesn't need to be entered several times for multiple autoscaling groups
@@ -348,8 +324,8 @@ resources:
       user_data:
         str_replace:
           params:
-            #__lb_ip__: {get_attr: [apppool, vip, address]}
-            __lb_ip__: {get_param: app_tier_lb_vip_ip}
+            __lb_ip__: {get_attr: [apppool, vip, address]}
+            #__lb_ip__: {get_param: app_tier_lb_vip_ip}
             __lb_port__: { get_param: web_port }
 
           template: { get_param: web_config }
@@ -370,7 +346,7 @@ resources:
 outputs:
   name:
     description: Name of the MySQL instance.
-    value: { get_attr: [mysql_instance, name] }
+    value: { get_attr: [db_instance, name] }
   db_ip:
     description: The IP address of the MySQL instance in AZ1.
     value: { get_attr: [db_app_port, fixed_ips, 0, ip_address] }
