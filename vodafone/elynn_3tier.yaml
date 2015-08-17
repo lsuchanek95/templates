@@ -123,6 +123,7 @@ resources:
       properties:
         name: db_sg
         rules:
+          - direction: egress
           - protocol: tcp
             direction: egress
             port_range_min: {get_param: web_port}
@@ -145,6 +146,7 @@ resources:
       properties:
         name: app_sg
         rules:
+          - direction: egress
           - protocol: tcp
             direction: ingress
             port_range_min: 22
@@ -171,6 +173,8 @@ resources:
       properties:
         name: web_sg
         rules:
+          - direction: egress
+          - protocol: tcp
           - protocol: tcp
             direction: ingress
             port_range_min: 22
