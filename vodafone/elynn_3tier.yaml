@@ -54,18 +54,18 @@ parameters:
     label: Neutron network name for the db tier
     description: Public network to attach server to.
     default: swift_net
-  web_security_group:
-    type: string
-    description: Security group
-    default: web-sg
-  app_security_group:
-    type: string
-    description: Security group
-    default: app-sg
-  db_security_group:
-    type: string
-    description: Security group
-    default: db-sg
+#  web_security_group:
+#    type: string
+#    description: Security group
+#    default: web-sg
+#  app_security_group:
+#    type: string
+#    description: Security group
+#    default: app-sg
+#  db_security_group:
+#    type: string
+#    description: Security group
+#    default: db-sg
   web_port:
     type: string
     description: Protocol port used by the server
@@ -118,60 +118,95 @@ parameters:
 
 
 resources:
-#  db_security_group:
-#      type: OS::Neutron::SecurityGroup
-#      properties:
-#        name: db_sg
-#        rules:
-#          - protocol: tcp
-#            port_range_min: 3306
-#            port_range_max: 3306
-#          - protocol: tcp
-#            port_range_min: 22
-#            port_range_max: 22
-#
-#  app_security_group:
-#      type: OS::Neutron::SecurityGroup
-#      properties:
-#        name: app_sg
-#        rules:
-#          - protocol: tcp
-#            port_range_min: 9000
-#            port_range_max: 9000
-#          - protocol: tcp
-#            port_range_min: 22
-#            port_range_max: 22
-#
-#  web_security_group:
-#      type: OS::Neutron::SecurityGroup
-#      properties:
-#        name: web_sg
-#        rules:
-#          - protocol: tcp
-#            port_range_min: 80
-#            port_range_max: 80
-#          - protocol: tcp
-#            port_range_min: 22
-#            port_range_max: 22
-#          - protocol: tcp
-#            port_range_min: 443
-#            port_range_max: 443
+  db_security_group:
+      type: OS::Neutron::SecurityGroup
+      properties:
+        name: db_sg
+        rules:
+          - protocol: tcp
+            direction: egress
+            port_range_min: {get_param: web_port}
+            port_range_max: {get_param: web_port}
+          - protocol: tcp
+            direction: ingress
+            port_range_min: 3306
+            port_range_max: 3306
+          - protocol: tcp
+            direction: ingress
+            port_range_min: 22
+            port_range_max: 22
+          - protocol: icmp
+            direction: ingress
+          - protocol: icmp
+            direction: egress
+
+  app_security_group:
+      type: OS::Neutron::SecurityGroup
+      properties:
+        name: app_sg
+        rules:
+          - protocol: tcp
+            direction: ingress
+            port_range_min: 22
+            port_range_max: 22
+          - protocol: icmp
+            direction: ingress
+          - protocol: icmp
+            direction: egress
+          - protocol: tcp
+            direction: ingress
+            port_range_min: {get_param: app_port}
+            port_range_max: {get_param: app_port}
+          - protocol: tcp
+            direction: egress
+            port_range_min: {get_param: web_port}
+            port_range_max: {get_param: web_port}
+          - protocol: tcp
+            direction: egress
+            port_range_min: 3306
+            port_range_max: 3306
+
+  web_security_group:
+      type: OS::Neutron::SecurityGroup
+      properties:
+        name: web_sg
+        rules:
+          - protocol: tcp
+            direction: ingress
+            port_range_min: 22
+            port_range_max: 22
+          - protocol: icmp
+            direction: ingress
+          - protocol: icmp
+            direction: egress
+          - protocol: tcp
+            direction: egress
+            port_range_min: {get_param: app_port}
+            port_range_max: {get_param: app_port}
+          - protocol: tcp
+            direction: ingress
+            port_range_min: {get_param: web_port}
+            port_range_max: {get_param: web_port}
+          - protocol: tcp
+            direction: egress
+            port_range_min: {get_param: web_port}
+            port_range_max: {get_param: web_port}
 
   db_app_port:
     type: OS::Neutron::Port
     properties:
       network: { get_param: db_network }
       security_groups:
-        #- { get_resource: db_security_group }
-        - { get_param: db_security_group }
+        - { get_resource: db_security_group }
+        #- { get_param: db_security_group }
 
   db_swift_port:
     type: OS::Neutron::Port
     properties:
       network: { get_param: swift_network }
       security_groups:
-        #- { get_resource: db_security_group }
-        - { get_param: db_security_group }
+        - { get_resource: db_security_group }
+        #- { get_param: db_security_group }
 
   db_instance:
     type: OS::Nova::Server
@@ -238,8 +273,8 @@ resources:
 #      pool_id: {get_param: app_tier_lb_pool_id}
       metering_az: "appaz1"
       az: {get_param: az1}
-      #security_group: { get_resource: app_security_group }
-      security_group: { get_param: app_security_group }
+      security_group: { get_resource: app_security_group }
+      #security_group: { get_param: app_security_group }
       protocol_port: {get_param: app_port}
 #      protocol_port: 9000
       user_data:
@@ -264,8 +299,8 @@ resources:
 #      pool_id: {get_param: app_tier_lb_pool_id}
       metering_az: "appaz2"
       az: {get_param: az2}
-      #security_group: { get_resource: app_security_group }
-      security_group: { get_param: app_security_group }
+      security_group: { get_resource: app_security_group }
+      #security_group: { get_param: app_security_group }
       protocol_port: {get_param: app_port}
 #      protocol_port: 9000
       user_data:
@@ -290,8 +325,8 @@ resources:
 #      pool_id: {get_param: web_tier_lb_pool_id}
       metering_az: "webaz1"
       az: {get_param: az1}
-      #security_group: { get_resource: web_security_group }
-      security_group: { get_param: web_security_group }
+      security_group: { get_resource: web_security_group }
+      #security_group: { get_param: web_security_group }
       protocol_port: {get_param: web_port}
       user_data:
         str_replace:
@@ -318,8 +353,8 @@ resources:
 #      pool_id: {get_param: web_tier_lb_pool_id}
       metering_az: "webaz2"
       az: {get_param: az2}
-      #security_group: { get_resource: web_security_group }
-      security_group: { get_param: web_security_group }
+      security_group: { get_resource: web_security_group }
+      #security_group: { get_param: web_security_group }
       protocol_port: {get_param: web_port}
       user_data:
         str_replace:
