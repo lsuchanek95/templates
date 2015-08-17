@@ -26,36 +26,34 @@ parameters:
     type: string
     description: Availability zone 2
     default: AZ2
-  az1_web_network:
+  web_network:
     type: string
     label: Neutron network name for the web tier
     description: Public network to attach server to.
-    default: vlan160
-  az2_web_network:
+    default: up_net
+  web_subnet:
     type: string
-    label: Neutron network name for the web tier
-    description: Public network to attach server to.
-    default: vlan161
-  az1_app_network:
-    type: string
-    label: Neutron network name for the app tier
-    description: Public network to attach server to.
-    default: vlan160
-  az2_app_network:
+    label: Neutron subnet name for the web tier
+    default: up_subnet
+  app_network:
     type: string
     label: Neutron network name for the app tier
     description: Public network to attach server to.
-    default: vlan161
-  az1_db_network:
+    default: middle_net
+  app_subnet:
     type: string
-    label: Neutron network name for the app tier
-    description: Public network to attach server to.
-    default: vlan160
-  az2_app_network:
+    label: Neutron subnet name for the app tier
+    default: middle_subnet
+  db_network:
     type: string
-    label: Neutron network name for the app tier
+    label: Neutron network name for the db tier
     description: Public network to attach server to.
-    default: vlan161
+    default: bottom_net
+  swift_network:
+    type: string
+    label: Neutron network name for the db tier
+    description: Public network to attach server to.
+    default: swift_net
   web_security_group:
     type: string
     description: Security group
@@ -68,10 +66,14 @@ parameters:
     type: string
     description: Security group
     default: db-sg
-  protocol_port:
+  web_port:
     type: string
     description: Protocol port used by the server
     default: 80
+  app_port:
+    type: string
+    description: Protocol port used by the server
+    default: 9000
   subnet:
     type: string
     description: subnet on which the load balancer will be located
@@ -131,7 +133,7 @@ parameters:
     default: |
       #!/bin/bash -ex
 
-      IP="__mysql_ip__"
+      #IP="__mysql_ip__"
       HOSTNAME=`hostname`
       sed -i 's/127.0.1.1 vodafone/127.0.1.1 '$HOSTNAME'/g' /etc/hosts
       update-rc.d mysql defaults
@@ -140,77 +142,73 @@ parameters:
 
 
 resources:
-  #db_security_group:
-  #    type: OS::Neutron::SecurityGroup
-  #    properties:
-  #      name: db_sg
-  #      rules:
-  #        - protocol: tcp
-  #          port_range_min: 3306
-  #          port_range_max: 3306
-  #        - protocol: tcp
-  #          port_range_min: 22
-  #          port_range_max: 22
+#  db_security_group:
+#      type: OS::Neutron::SecurityGroup
+#      properties:
+#        name: db_sg
+#        rules:
+#          - protocol: tcp
+#            port_range_min: 3306
+#            port_range_max: 3306
+#          - protocol: tcp
+#            port_range_min: 22
+#            port_range_max: 22
+#
+#  app_security_group:
+#      type: OS::Neutron::SecurityGroup
+#      properties:
+#        name: app_sg
+#        rules:
+#          - protocol: tcp
+#            port_range_min: 9000
+#            port_range_max: 9000
+#          - protocol: tcp
+#            port_range_min: 22
+#            port_range_max: 22
+#
+#  web_security_group:
+#      type: OS::Neutron::SecurityGroup
+#      properties:
+#        name: web_sg
+#        rules:
+#          - protocol: tcp
+#            port_range_min: 80
+#            port_range_max: 80
+#          - protocol: tcp
+#            port_range_min: 22
+#            port_range_max: 22
+#          - protocol: tcp
+#            port_range_min: 443
+#            port_range_max: 443
 
-  #app_security_group:
-  #    type: OS::Neutron::SecurityGroup
-  #    properties:
-  #      name: app_sg
-  #      rules:
-  #        - protocol: tcp
-  #          port_range_min: 9000
-  #          port_range_max: 9000
-  #        - protocol: tcp
-  #          port_range_min: 22
-  #          port_range_max: 22
-
-  #web_security_group:
-  #    type: OS::Neutron::SecurityGroup
-  #    properties:
-  #      name: web_sg
-  #      rules:
-  #        - protocol: tcp
-  #          port_range_min: 80
-  #          port_range_max: 80
-  #        - protocol: tcp
-  #          port_range_min: 22
-  #          port_range_max: 22
-  #        - protocol: tcp
-  #          port_range_min: 443
-  #          port_range_max: 443
-
-  mysql_port_az1:
+  db_app_port:
     type: OS::Neutron::Port
     properties:
-      network: { get_param: az1_app_network }
+      network: { get_param: db_network }
       security_groups:
         #- { get_resource: db_security_group }
         - { get_param: db_security_group }
 
-  mysql_port_az2:
+  db_swift_port:
     type: OS::Neutron::Port
     properties:
-      network: { get_param: az2_app_network }
+      network: { get_param: swift_network }
       security_groups:
         #- { get_resource: db_security_group }
         - { get_param: db_security_group }
 
-  mysql_instance:
+  db_instance:
     type: OS::Nova::Server
     properties:
       image: { get_param: image }
       flavor: { get_param: flavor }
       key_name: { get_param: key_name }
       networks:
-        - port: { get_resource: mysql_port_az1 }
-        - port: { get_resource: mysql_port_az2 }
+        - port: { get_resource: db_app_port }
+        - port: { get_resource: db_swift_port }
       config_drive: true
       user_data_format: RAW
-      user_data:
-        str_replace:
-          params:
-            __mysql_ip__: 80
-          template: { get_param: db_config }
+      user_data: { get_param: db_config }
 
   webmonitor:
     type: OS::Neutron::HealthMonitor
@@ -220,15 +218,15 @@ resources:
       max_retries: 5
       timeout: 5
 
-  #webpool:
-  #  type: OS::Neutron::Pool
-  #  properties:
-  #    protocol: TCP
-  #    monitors: [{get_resource: webmonitor}]
-  #    subnet: {get_param: subnet}
-  #    lb_method: ROUND_ROBIN
-  #    vip:
-  #      protocol_port: {get_param: protocol_port}
+  webpool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: TCP
+      monitors: [{get_resource: webmonitor}]
+      subnet: {get_param: web_subnet}
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: {get_param: web_port}
 
   appmonitor:
     type: OS::Neutron::HealthMonitor
@@ -238,15 +236,15 @@ resources:
       max_retries: 5
       timeout: 5
 
-  #apppool:
-  #  type: OS::Neutron::Pool
-  #  properties:
-  #    protocol: TCP
-  #    monitors: [{get_resource: appmonitor}]
-  #    subnet: {get_param: subnet}
-  #    lb_method: ROUND_ROBIN
-  #    vip:
-  #      protocol_port: 9000
+  apppool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: TCP
+      monitors: [{get_resource: appmonitor}]
+      subnet: {get_param: app_subnet}
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: {get_param: app_port}
 
   asgappaz1:
     type: asg.yaml
@@ -257,20 +255,21 @@ resources:
       image: {get_param: image}
       key_name: {get_param: key_name}
 #      network: {get_param: az1_app_network}
-      up_net: {get_param: az1_app_network}
-      down_net: {get_param: az1_db_network}
-      #pool_id: {get_resource: apppool}
-      pool_id: {get_param: app_tier_lb_pool_id}
+      up_net: {get_param: app_network}
+      down_net: {get_param: db_network}
+      swift_net: {get_param: swift_network}
+      pool_id: {get_resource: apppool}
+#      pool_id: {get_param: app_tier_lb_pool_id}
       metering_az: "appaz1"
       az: {get_param: az1}
       #security_group: { get_resource: app_security_group }
       security_group: { get_param: app_security_group }
-      #protocol_port: {get_param: protocol_port}
-      protocol_port: 9000
+      protocol_port: {get_param: app_port}
+#      protocol_port: 9000
       user_data:
         str_replace:
           params:
-            __mysql_ip__: { get_attr: [mysql_port_az1, fixed_ips, 0, ip_address] }
+            __mysql_ip__: { get_attr: [db_app_port, fixed_ips, 0, ip_address] }
           template: { get_param: app_config }
 
   asgappaz2:
@@ -281,19 +280,22 @@ resources:
       flavor: {get_param: flavor}
       image: {get_param: image}
       key_name: {get_param: key_name}
-      network: {get_param: az2_app_network}
-      #pool_id: {get_resource: apppool}
-      pool_id: {get_param: app_tier_lb_pool_id}
+#      network: {get_param: az2_app_network}
+      up_net: {get_param: app_network}
+      down_net: {get_param: db_network}
+      swift_net: {get_param: swift_network}
+      pool_id: {get_resource: apppool}
+#      pool_id: {get_param: app_tier_lb_pool_id}
       metering_az: "appaz2"
       az: {get_param: az2}
       #security_group: { get_resource: app_security_group }
       security_group: { get_param: app_security_group }
-      #protocol_port: {get_param: protocol_port}
-      protocol_port: 9000
+      protocol_port: {get_param: app_port}
+#      protocol_port: 9000
       user_data:
         str_replace:
           params:
-            __mysql_ip__: { get_attr: [mysql_port_az1, fixed_ips, 0, ip_address] }
+            __mysql_ip__: { get_attr: [db_app_port, fixed_ips, 0, ip_address] }
           template: { get_param: app_config }
 
   asgwebaz1:
@@ -304,20 +306,23 @@ resources:
       flavor: {get_param: flavor}
       image: {get_param: image}
       key_name: {get_param: key_name}
-      network: {get_param: az1_web_network}
-      #pool_id: {get_resource: webpool}
-      pool_id: {get_param: web_tier_lb_pool_id}
+#      network: {get_param: az1_web_network}
+      up_net: {get_param: web_network}
+      down_net: {get_param: app_network}
+      swift_net: {get_param: swift_network}
+      pool_id: {get_resource: webpool}
+#      pool_id: {get_param: web_tier_lb_pool_id}
       metering_az: "webaz1"
       az: {get_param: az1}
       #security_group: { get_resource: web_security_group }
       security_group: { get_param: web_security_group }
-      protocol_port: {get_param: protocol_port}
+      protocol_port: {get_param: web_port}
       user_data:
         str_replace:
           params:
-            #__lb_ip__: {get_attr: [apppool, vip, address]}
-            __lb_ip__: {get_param: app_tier_lb_vip_ip}
-            __lb_port__: { get_param: protocol_port }
+            __lb_ip__: {get_attr: [apppool, vip, address]}
+#            __lb_ip__: {get_param: app_tier_lb_vip_ip}
+            __lb_port__: { get_param: web_port }
 
           template: { get_param: web_config }
 
@@ -329,52 +334,52 @@ resources:
       flavor: {get_param: flavor}
       image: {get_param: image}
       key_name: {get_param: key_name}
-      network: {get_param: az2_web_network}
-      #pool_id: {get_resource: webpool}
-      pool_id: {get_param: web_tier_lb_pool_id}
+#      network: {get_param: az2_web_network}
+      up_net: {get_param: web_network}
+      down_net: {get_param: app_network}
+      swift_net: {get_param: swift_network}
+      pool_id: {get_resource: webpool}
+#      pool_id: {get_param: web_tier_lb_pool_id}
       metering_az: "webaz2"
       az: {get_param: az2}
       #security_group: { get_resource: web_security_group }
       security_group: { get_param: web_security_group }
-      protocol_port: {get_param: protocol_port}
+      protocol_port: {get_param: web_port}
       user_data:
         str_replace:
           params:
             #__lb_ip__: {get_attr: [apppool, vip, address]}
             __lb_ip__: {get_param: app_tier_lb_vip_ip}
-            __lb_port__: { get_param: protocol_port }
+            __lb_port__: { get_param: web_port }
 
           template: { get_param: web_config }
 
-  #applb:
-  #  type: OS::Neutron::LoadBalancer
-  #  properties:
-  #    #protocol_port: {get_param: protocol_port}
-  #    protocol_port: 9000
-  #    pool_id: {get_resource: apppool}
+  applb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      protocol_port: {get_param: app_port}
+#      protocol_port: 9000
+      pool_id: {get_resource: apppool}
 
-  #weblb:
-  #  type: OS::Neutron::LoadBalancer
-  #  properties:
-  #    protocol_port: {get_param: protocol_port}
-  #    pool_id: {get_resource: webpool}
+  weblb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      protocol_port: {get_param: web_port}
+      pool_id: {get_resource: webpool}
 
 outputs:
   name:
     description: Name of the MySQL instance.
     value: { get_attr: [mysql_instance, name] }
-  mysql_az1_ip:
+  db_ip:
     description: The IP address of the MySQL instance in AZ1.
-    value: { get_attr: [mysql_port_az1, fixed_ips, 0, ip_address] }
-  mysql_az2_ip:
-    description: The IP address of the MySQL instance in AZ2.
-    value: { get_attr: [mysql_port_az2, fixed_ips, 0, ip_address] }
-  #app_pool_ip_address:
-  #  value: {get_attr: [apppool, vip, address]}
-  #  description: The IP address of the App load balancing pool
-  #web_pool_ip_address:
-  #  value: {get_attr: [webpool, vip, address]}
-  #  description: The IP address of the Web load balancing pool
+    value: { get_attr: [db_app_port, fixed_ips, 0, ip_address] }
+  app_pool_ip_address:
+    value: {get_attr: [apppool, vip, address]}
+    description: The IP address of the App load balancing pool
+  web_pool_ip_address:
+    value: {get_attr: [webpool, vip, address]}
+    description: The IP address of the Web load balancing pool
   ceilometer_query:
     value:
       str_replace:

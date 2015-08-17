@@ -49,9 +49,9 @@ resources:
       metadata: {get_param: metadata}
       user_data: {get_param: user_data}
       networks: [
+        {network: {get_param: swift_net}},
         {network: {get_param: up_net}},
-        {network: {get_param: down_net}},
-        {network: {get_param: swift_net}}
+        {network: {get_param: down_net}}
       ]
       security_groups: [ {get_param: security_group} ]
       availability_zone: {get_param: az}
