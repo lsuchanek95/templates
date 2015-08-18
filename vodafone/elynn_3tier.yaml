@@ -180,7 +180,6 @@ resources:
         rules:
           - direction: egress
           - protocol: tcp
-          - protocol: tcp
             direction: ingress
             port_range_min: 22
             port_range_max: 22
@@ -228,6 +227,7 @@ resources:
         - port: { get_resource: db_swift_port }
       config_drive: true
       user_data_format: RAW
+      availability_zone: {get_param: az1}
       user_data: { get_param: db_config }
 
   webmonitor:
@@ -395,9 +395,9 @@ resources:
 
 
 outputs:
-  name:
-    description: Name of the MySQL instance.
-    value: { get_attr: [db_instance, name] }
+  vip_floatingip:
+    description: The Floating IP of VirtualIP.
+    value: { get_attr: [lb_floating, floating_ip_address] }
   db_ip:
     description: The IP address of the MySQL instance in AZ1.
     value: { get_attr: [db_app_port, fixed_ips, 0, ip_address] }
