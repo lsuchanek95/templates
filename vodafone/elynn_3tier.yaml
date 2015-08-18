@@ -54,6 +54,11 @@ parameters:
     label: Neutron network name for the db tier
     description: Public network to attach server to.
     default: swift_net
+  external_network:
+    type: string
+    label: Neutron network name for the db tier
+    description: Public network to attach server to.
+    default: ext-net
 #  web_security_group:
 #    type: string
 #    description: Security group
@@ -381,6 +386,13 @@ resources:
     properties:
       protocol_port: {get_param: web_port}
       pool_id: {get_resource: webpool}
+
+  lb_floating:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: external_network}
+      port_id: {get_attr: [webpool, vip, port_id]}
+
 
 outputs:
   name:
