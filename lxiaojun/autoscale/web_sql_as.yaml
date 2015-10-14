@@ -4,7 +4,7 @@ parameters:
   web-image:
     type: string
     description: Image used for web servers
-    default: cirros-0.3.2-x86_64-uec
+    default: cirros-0.3.4-x86_64-uec
   key:
     type: string
     description: SSH key to connect to the servers
@@ -27,7 +27,7 @@ resources:
           flavor: {get_param: web-flavor}
           image: {get_param: web-image}
           key_name: {get_param: key}
-          metadata: {"metering.stack": {get_param: "OS::stack_id"}}
+        #  metadata: {"metering.stack": {get_param: "OS::stack_id"}}
 
   web_server_scaleup_policy:
     type: OS::Heat::ScalingPolicy
