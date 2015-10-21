@@ -43,6 +43,8 @@ resources:
       flavor: {get_param: database_flavor}
       image: {get_param: image}
       key_name: {get_param: key}
+      networks:
+        - network: {get_param: private}
       user_data_format: RAW
       user_data:
         str_replace:
