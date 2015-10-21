@@ -44,7 +44,7 @@ resources:
       image: {get_param: image}
       key_name: {get_param: key}
       networks:
-        - network: {get_param: private}
+        - network: {get_param: network}
       user_data_format: RAW
       user_data:
         str_replace:
