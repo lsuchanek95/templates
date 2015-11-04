@@ -6,3 +6,4 @@ resources:
     properties:
       name: c1
       profile_id: b95b414e-3e94-4e4a-87d3-d8b524e34c72
+      desired_capacity: 1
