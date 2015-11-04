@@ -1,0 +1,15 @@
+heat_template_version: 2015-10-15
+
+resources:
+  cluster:
+    type: OS::Senlin::Cluster
+    properties:
+      desired_capacity: 1
+#      profile_id: {get_attr: [profile, id]}
+      profile: {get_resource: profile}
+#      profile: p1
+
+  profile:
+    type: OS::Senlin::Profile
+    properties:
+      spec: {get_file: senlin-profile.yaml}
