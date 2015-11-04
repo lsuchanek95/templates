@@ -16,3 +16,7 @@ Reinstall heat services
   sudo python setup.py develop
 
 Restart heat services
+
+Create heat stack
+  cd template/
+  heat stack-create test -f cp.yaml
