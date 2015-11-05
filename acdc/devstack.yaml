@@ -1,0 +1,80 @@
+heat_template_version: 2013-05-23
+parameters:
+  image:
+    type: string
+    default: centos-7.1-x86_64
+    constraints:
+      - allowed_values: [ ubuntu-14.04lts-x86_64, centos-7.1-x86_64 ]
+  flavor:
+    type: string
+    default: bvt-2
+  keyname:
+    type: string
+    default: elynn
+  network:
+    type: string
+    default: site-data
+  user_passwd:
+    type: string
+    default: Passw0rd
+
+resources:
+  cloudconfig:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        packages:
+          - git
+#        groups:
+#          - cloudy
+        users:
+          - default
+          - name: stack
+            gecos: devstack user
+            lock-passwd: False
+            plain_text_passwd: {get_param: user_passwd}
+            shell: /bin/bash
+            sudo: "ALL=(ALL) NOPASSWD:ALL"
+            homedir: /opt/stack
+        ssh_pwauth: True
+        write_files:
+          - path: /tmp/local.conf
+            content: {get_file: local.conf}
+            permissions: '0666'
+          - path: /tmp/install.sh
+            content: {get_file: install.sh}
+            permissions: '0755'
+          - path: /etc/sudoers.d/999-stack-requiretty
+            permissions: 440
+            content: |
+              Defaults:stack !requiretty
+#        runcmd:
+#          - {get_file: setup.sh}
+
+  softwareconfig:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ungrouped
+      config: 
+        str_replace:
+          template: {get_file: setup.sh}
+          params:
+            password: {get_param: user_passwd}
+      
+  multimime:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: {get_resource: cloudconfig}
+        - config: {get_resource: softwareconfig}
+
+  devstack:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: {get_param: flavor}
+      key_name: {get_param: keyname}
+      networks:
+        - network: {get_param: network}
+      user_data_format: RAW
+      user_data: {get_resource: multimime}
