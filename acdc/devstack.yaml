@@ -2,7 +2,7 @@ heat_template_version: 2013-05-23
 parameters:
   image:
     type: string
-    default: centos-7.1-x86_64
+    default: ubuntu-14.04lts-x86_64
     constraints:
       - allowed_values: [ ubuntu-14.04lts-x86_64, centos-7.1-x86_64 ]
   flavor:
