@@ -25,6 +25,9 @@ resources:
       cloud_config:
         packages:
           - git
+          - libxml2-dev
+          - libxslt1-dev
+          - libpq-dev
 #        groups:
 #          - cloudy
         users:
