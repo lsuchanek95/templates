@@ -100,7 +100,7 @@ class SenlinCluster(resource.Resource):
             properties.Schema.INTEGER,
             _('Type of the notification.'),
             update_allowed=True,
-            # default=3600
+            default=3600
         ),
     }
 
