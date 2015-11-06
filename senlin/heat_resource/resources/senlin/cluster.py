@@ -11,6 +11,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from heat.common import exception
 from heat.common.i18n import _
 from heat.engine import clients
 from heat.engine import constraints
@@ -75,13 +76,19 @@ class SenlinCluster(resource.Resource):
             properties.Schema.INTEGER,
             _('Type of the notification.'),
             update_allowed=True,
-            default=0
+            default=0,
+            constraints=[
+                constraints.Range(min=0)
+            ]
         ),
         MAX_SIZE: properties.Schema(
             properties.Schema.INTEGER,
             _('Type of the notification.'),
             update_allowed=True,
-            default=-1
+            default=-1,
+            constraints=[
+                constraints.Range(min=-1)
+            ]
         ),
         METADATA: properties.Schema(
             properties.Schema.MAP,
@@ -93,7 +100,7 @@ class SenlinCluster(resource.Resource):
             properties.Schema.INTEGER,
             _('Type of the notification.'),
             update_allowed=True,
-            default=3600
+            # default=3600
         ),
     }
 
@@ -195,7 +202,19 @@ class SenlinCluster(resource.Resource):
         return False
 
     def validate(self):
-        pass
+        # check validity of group size
+        min_size = self.properties[self.MIN_SIZE]
+        max_size = self.properties[self.MAX_SIZE]
+
+        if max_size < min_size:
+            msg = _("MinSize can not be greater than MaxSize")
+            raise exception.StackValidationFailed(message=msg)
+
+        if self.properties[self.DESIRED_CAPACITY] is not None:
+            desired_capacity = self.properties[self.DESIRED_CAPACITY]
+            if desired_capacity < min_size or desired_capacity > max_size:
+                msg = _("DesiredCapacity must be between MinSize and MaxSize")
+                raise exception.StackValidationFailed(message=msg)
 
 
 def resource_mapping():

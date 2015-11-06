@@ -118,20 +118,14 @@ class SenlinProfile(resource.Resource):
 
     def handle_delete(self):
         if self.resource_id is not None:
-            params = {
-                'id': self.resource_id
-            }
             try:
                 self.client().delete(models.Profile,
-                                     params)
+                                     dict(id=self.resource_id))
             except Exception as ex:
                 self.client_plugin().ignore_not_found(ex)
 
     def _resolve_attribute(self, name):
-        params = {
-            'id': self.resource_id
-        }
-        profile = self.client().get(models.Profile, params)
+        profile = self.client().get(models.Profile, dict(id=self.resource_id))
         return getattr(profile, name, None)
 
 
