@@ -23,4 +23,5 @@ Restart heat services
 
 Create heat stack
   cd template/
+
   heat stack-create test -f cp.yaml
