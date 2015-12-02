@@ -23,11 +23,16 @@ resources:
     type: OS::Heat::CloudConfig
     properties:
       cloud_config:
+        apt_sources:
+          - source: "deb http://archive.ubuntu.com/ubuntu trusty-backports main restricted universe multiverse"
+          - source: "deb-src http://archive.ubuntu.com/ubuntu trusty-backports main restricted universe multiverse"
         packages:
           - git
           - libxml2-dev
           - libxslt1-dev
           - libpq-dev
+          - bridge-utils
+          - ebtables
 #        groups:
 #          - cloudy
         users:
