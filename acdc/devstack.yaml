@@ -7,7 +7,7 @@ parameters:
       - allowed_values: [ ubuntu-14.04lts-x86_64, centos-7.1-x86_64 ]
   flavor:
     type: string
-    default: bvt-2
+    default: 4-16-40
   keyname:
     type: string
     default: elynn
