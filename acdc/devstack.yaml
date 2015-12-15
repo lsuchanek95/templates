@@ -86,3 +86,4 @@ resources:
         - network: {get_param: network}
       user_data_format: RAW
       user_data: {get_resource: multimime}
+      config_drive: True
