@@ -13,6 +13,7 @@
 
 from heat.common import exception
 from heat.common.i18n import _
+from heat.engine import attributes
 from heat.engine import clients
 from heat.engine import constraints
 from heat.engine import properties
@@ -45,9 +46,9 @@ class SenlinCluster(resource.Resource):
     )
 
     ATTRIBUTES = (
-        ATTR_NAME, ATTR_TYPE, ATTR_METADATA, ATTR_ID, ATTR_SPEC,
+        ATTR_NAME, ATTR_METADATA, ATTR_ID, CURRENT_SIZE, NODE_DETAILS,
     ) = (
-        "name", "type", 'metadata', 'id', 'spec',
+        "name", 'metadata', 'id', 'current_size', 'node_details',
     )
 
     properties_schema = {
@@ -101,6 +102,29 @@ class SenlinCluster(resource.Resource):
             _('Type of the notification.'),
             update_allowed=True,
             default=3600
+        ),
+    }
+
+    attributes_schema = {
+        ATTR_NAME: attributes.Schema(
+            _("Cluster status."),
+            type=attributes.Schema.STRING
+        ),
+        ATTR_METADATA: attributes.Schema(
+            _("Cluster information."),
+            type=attributes.Schema.MAP
+        ),
+        ATTR_ID: attributes.Schema(
+            _("Cluster information."),
+            type=attributes.Schema.STRING
+        ),
+        CURRENT_SIZE: attributes.Schema(
+            _("Cluster information."),
+            type=attributes.Schema.INTEGER
+        ),
+        NODE_DETAILS: attributes.Schema(
+            _("Cluster information."),
+            type=attributes.Schema.MAP
         ),
     }
 
@@ -206,16 +230,31 @@ class SenlinCluster(resource.Resource):
         min_size = self.properties[self.MIN_SIZE]
         max_size = self.properties[self.MAX_SIZE]
 
-        if max_size < min_size:
+        if max_size != -1 and max_size < min_size:
             msg = _("MinSize can not be greater than MaxSize")
             raise exception.StackValidationFailed(message=msg)
 
         if self.properties[self.DESIRED_CAPACITY] is not None:
             desired_capacity = self.properties[self.DESIRED_CAPACITY]
-            if desired_capacity < min_size or desired_capacity > max_size:
+            if (desired_capacity <= min_size or
+                    (max_size != -1 and desired_capacity > max_size)):
                 msg = _("DesiredCapacity must be between MinSize and MaxSize")
                 raise exception.StackValidationFailed(message=msg)
 
+    def _resolve_attribute(self, name):
+        cluster = self.client().get(models.Cluster, dict(id=self.resource_id))
+        if name == self.CURRENT_SIZE:
+            return getattr(cluster, 'desired_capacity', None)
+        if name == self.NODE_DETAILS:
+            node_list = getattr(cluster, 'nodes', None)
+            node_details = {}
+            for node_id in node_list:
+                node = self.client().get_with_args(models.Node,
+                                                   dict(id=node_id,
+                                                        show_details=True))
+                node_details[node_id] = node.details
+            return node_details
+        return getattr(cluster, name, None)
 
 def resource_mapping():
     return {

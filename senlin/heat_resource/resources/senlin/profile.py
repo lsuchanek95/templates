@@ -13,8 +13,8 @@
 
 from heat.common.i18n import _
 from heat.common import template_format
-from heat.engine import clients
 from heat.engine import attributes
+from heat.engine import clients
 from heat.engine import properties
 from heat.engine import resource
 from heat.engine import support
