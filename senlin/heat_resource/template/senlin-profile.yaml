@@ -10,7 +10,4 @@ properties:
           length: 64
     outputs: 
       result: 
-        value: 
-          get_attr: 
-            - "random"
-            - "value"
+        value:  ttt
