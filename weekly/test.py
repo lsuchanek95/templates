@@ -62,7 +62,7 @@ for name in name_list:
 
     for dd in content_dict:
         update_date = dp.parse(dd['updated'])
-        if datetime.datetime.utcnow() - update_date > datetime.timedelta(days=7):
+        if datetime.datetime.utcnow() - update_date > datetime.timedelta(days=9):
             continue
         if not result[name].get(dd['status']):
             result[name][dd['status']] = []
