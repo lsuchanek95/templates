@@ -1,8 +1,0 @@
-heat_template_version: 2013-05-23
-
-resources:
-  profile:
-    type: OS::Senlin::Profile
-    properties:
-      name: p1
-      spec: {get_file: senlin-profile.yaml}
