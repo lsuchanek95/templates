@@ -1,0 +1,31 @@
+heat_template_version: 2013-05-23
+parameters:
+  flavor:
+    type: string
+  image:
+    type: string
+  key_name:
+    type: string
+  network:
+    type: string
+  metadata:
+    type: json
+  pool_id:
+    type: string
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: key_name}
+      metadata: {get_param: metadata}
+      networks:
+        - network: {get_param: network}
+
+  member:
+    type: OS::Neutron::LBaaS::PoolMember
+    properties:
+      pool: {get_param: pool_id}
+      protocol_port: 22
+      address: {get_attr: [server, first_address]}

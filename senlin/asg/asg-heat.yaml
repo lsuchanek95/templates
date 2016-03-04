@@ -1,0 +1,81 @@
+heat_template_version: 2016-04-08
+parameters:
+  flavor:
+    type: string
+    default: m1.nano
+  image:
+    type: string
+    default: cirros-0.3.4-x86_64-uec
+  key_name:
+    type: string
+    default: elynn
+  network:
+    type: string
+    default: private
+  vip_subnet:
+    type: string
+    default: private-subnet
+  subnet_id:
+    type: string
+    default: f6c30662-4002-4df5-a721-ba5bdfbb4479
+resources:
+  profile:
+    type: OS::Senlin::Profile
+    properties:
+      type:  os.heat.stack-1.0
+      properties:
+        parameters:
+          flavor: {get_param: flavor}
+          image: {get_param: image}
+          key_name: {get_param: key_name}
+          metadata: {metering.stack: {get_param: 'OS::stack_id'}}
+          network: {get_param: network}
+          pool_id: {get_resource: pool}
+        template: {get_file: server.yaml}
+
+  cluster:
+    type: OS::Senlin::Cluster
+    properties:
+      desired_capacity: 1
+      profile: {get_resource: profile}
+
+  receiver_scale_out:
+    type: OS::Senlin::Receiver
+    properties:
+      cluster: {get_resource: cluster}
+      action: CLUSTER_SCALE_OUT
+      type: webhook
+
+  receiver_scale_in:
+    type: OS::Senlin::Receiver
+    properties:
+      cluster: {get_resource: cluster}
+      action: CLUSTER_SCALE_IN
+      type: webhook
+
+#  monitor:
+#    type: OS::Neutron::LBaaS::HealthMonitor
+#    properties:
+#      type: HTTP
+#      delay: 5
+#      max_retries: 5
+#      timeout: 5
+
+  pool:
+    type: OS::Neutron::LBaaS::Pool
+    properties:
+      lb_algorithm: ROUND_ROBIN
+      listener: {get_resource: listener}
+      protocol: TCP
+
+  lb:
+    type: OS::Neutron::LBaaS::LoadBalancer
+    properties:
+      vip_subnet: {get_param: vip_subnet}
+
+  listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: {get_resource: lb}
+      protocol: TCP
+      protocol_port: 22
