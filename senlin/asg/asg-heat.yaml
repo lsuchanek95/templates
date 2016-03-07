@@ -1,23 +1,29 @@
 heat_template_version: 2016-04-08
+
+description: >
+  This tempalte demostrate how to use senlin resources to create
+  a flexible cluster.
+
 parameters:
   flavor:
+    description: Flavor for the instances to be created.
     type: string
     default: m1.nano
   image:
+    description: Name or ID of the image to use for the instances.
     type: string
     default: cirros-0.3.4-x86_64-uec
   key_name:
+    description: Name of an existing key pair to use for the instances.
     type: string
-    default: elynn
   network:
+    description: The network for the instances.
     type: string
     default: private
   vip_subnet:
+    description: The subnet used for loadbalancer VIP.
     type: string
     default: private-subnet
-  subnet_id:
-    type: string
-    default: f6c30662-4002-4df5-a721-ba5bdfbb4479
 resources:
   profile:
     type: OS::Senlin::Profile
@@ -31,13 +37,37 @@ resources:
           metadata: {metering.stack: {get_param: 'OS::stack_id'}}
           network: {get_param: network}
           pool_id: {get_resource: pool}
+          port: 22
+          subnet: {get_param: vip_subnet}
         template: {get_file: server.yaml}
 
   cluster:
     type: OS::Senlin::Cluster
     properties:
-      desired_capacity: 1
+      desired_capacity: 2
       profile: {get_resource: profile}
+
+  #   properties:
+  #     type: senlin.policy.scaling-1.0
+  #     bindings:
+  #       - cluster: {get_resource: cluster}
+  #     properties:
+  #       event: CLUSTER_SCALE_IN
+  #       adjustment:
+  #         type: CHANGE_IN_CAPACITY
+  #         number: 1
+
+  # scale_out_policy:
+  #   type: OS::Senlin::Policy
+  #   properties:
+  #     type: senlin.policy.scaling-1.0
+  #     bindings:
+  #       - cluster: {get_resource: cluster}
+  #     properties:
+  #       event: CLUSTER_SCALE_OUT
+  #       adjustment:
+  #         type: CHANGE_IN_CAPACITY
+  #         number: 1
 
   receiver_scale_out:
     type: OS::Senlin::Receiver
@@ -53,13 +83,14 @@ resources:
       action: CLUSTER_SCALE_IN
       type: webhook
 
-#  monitor:
-#    type: OS::Neutron::LBaaS::HealthMonitor
-#    properties:
-#      type: HTTP
-#      delay: 5
-#      max_retries: 5
-#      timeout: 5
+  monitor:
+    type: OS::Neutron::LBaaS::HealthMonitor
+    properties:
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+      pool: {get_resource: pool}
 
   pool:
     type: OS::Neutron::LBaaS::Pool
@@ -79,3 +110,23 @@ resources:
       loadbalancer: {get_resource: lb}
       protocol: TCP
       protocol_port: 22
+
+outputs:
+  vip:
+    value: {get_attr: [lb, vip_address]}
+    description: VIP address of loadbalancer.
+  webhook_scale_out:
+    description: Webhook to scale out cluster.
+    value:
+      str_replace:
+        template: curl -X POST LINK
+        params:
+          LINK: {get_attr: [receiver_scale_out, channel, alarm_url]}
+  webhook_scale_in:
+    description: Webhook to scale in cluster.
+    value:
+      str_replace:
+        template: curl -X POST LINK
+        params:
+          LINK: {get_attr: [receiver_scale_in, channel, alarm_url]}
+

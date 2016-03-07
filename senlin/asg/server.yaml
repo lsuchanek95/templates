@@ -12,6 +12,10 @@ parameters:
     type: json
   pool_id:
     type: string
+  port:
+    type: number
+  subnet:
+    type: string
 resources:
   server:
     type: OS::Nova::Server
@@ -27,5 +31,6 @@ resources:
     type: OS::Neutron::LBaaS::PoolMember
     properties:
       pool: {get_param: pool_id}
-      protocol_port: 22
-      address: {get_attr: [server, first_address]}
+      protocol_port: {get_param: port}
+      address: {get_attr: [server, networks, {get_param: network}, 0]}
+      subnet: {get_param: subnet}
