@@ -57,7 +57,7 @@ result = {}
 for name in name_list:
     result[name] = {}
     context = r.urlopen('https://review.openstack.org/changes'
-                        '/?q=owner:%s&n=25&O=1' % name).readall().decode('utf-8')
+                        '/?q=owner:%s&n=25&O=1' % name).read().decode('utf-8')
     content_dict = json.loads(context[4:])
 
     for dd in content_dict:
@@ -70,7 +70,7 @@ for name in name_list:
 
 
 for name in result:
-    print('\n'+name)
+    print('\n### '+name+' ###')
     for status in result[name]:
         print('\n'+status)
         for patch in result[name][status]:
