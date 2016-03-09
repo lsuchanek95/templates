@@ -47,27 +47,29 @@ resources:
       desired_capacity: 2
       profile: {get_resource: profile}
 
-  #   properties:
-  #     type: senlin.policy.scaling-1.0
-  #     bindings:
-  #       - cluster: {get_resource: cluster}
-  #     properties:
-  #       event: CLUSTER_SCALE_IN
-  #       adjustment:
-  #         type: CHANGE_IN_CAPACITY
-  #         number: 1
+  scale_in_policy:
+    type: OS::Senlin::Policy
+    properties:
+      type: senlin.policy.scaling-1.0
+      bindings:
+        - cluster: {get_resource: cluster}
+      properties:
+        event: CLUSTER_SCALE_IN
+        adjustment:
+          type: CHANGE_IN_CAPACITY
+          number: 1
 
-  # scale_out_policy:
-  #   type: OS::Senlin::Policy
-  #   properties:
-  #     type: senlin.policy.scaling-1.0
-  #     bindings:
-  #       - cluster: {get_resource: cluster}
-  #     properties:
-  #       event: CLUSTER_SCALE_OUT
-  #       adjustment:
-  #         type: CHANGE_IN_CAPACITY
-  #         number: 1
+  scale_out_policy:
+    type: OS::Senlin::Policy
+    properties:
+      type: senlin.policy.scaling-1.0
+      bindings:
+        - cluster: {get_resource: cluster}
+      properties:
+        event: CLUSTER_SCALE_OUT
+        adjustment:
+          type: CHANGE_IN_CAPACITY
+          number: 1
 
   receiver_scale_out:
     type: OS::Senlin::Receiver

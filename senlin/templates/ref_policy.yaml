@@ -1,0 +1,47 @@
+heat_template_version: 2016-04-08
+
+description: >
+  This template demostrate how to use senlin resources to create
+  a flexible cluster.
+
+parameters:
+  flavor:
+    description: Flavor for the instances to be created.
+    type: string
+    default: m1.nano
+  image:
+    description: Name or ID of the image to use for the instances.
+    type: string
+    default: cirros-0.3.4-x86_64-uec
+  key_name:
+    description: Name of an existing key pair to use for the instances.
+    type: string
+  network:
+    description: The network for the instances.
+    type: string
+    default: private
+
+resources:
+  profile:
+    type: OS::Senlin::Profile
+    properties:
+      type:  os.nova.server-1.0
+      properties:
+        flavor: {get_param: flavor}
+        image: {get_param: image}
+        key_name: {get_param: key_name}
+        networks:
+          - network: {get_param: network}
+
+  cluster:
+    type: OS::Senlin::Cluster
+    properties:
+      desired_capacity: 1
+      profile: {get_resource: profile}
+
+  ref_policy:
+    type: OS::Senlin::Policy
+    properties:
+      reference: p1
+      bindings:
+        - cluster: {get_resource: cluster}
