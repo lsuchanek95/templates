@@ -68,6 +68,9 @@ class Policy(resource.Resource):
         REFERENCE: properties.Schema(
             properties.Schema.STRING,
             _('The external policy name or ID.'),
+            constraints=[
+                constraints.CustomConstraint('senlin.policy')
+            ]
         ),
         POLICY_PROPS: properties.Schema(
             properties.Schema.MAP,
