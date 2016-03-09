@@ -68,9 +68,6 @@ class Policy(resource.Resource):
         REFERENCE: properties.Schema(
             properties.Schema.STRING,
             _('The external policy name or ID.'),
-            constraints=[
-                constraints.CustomConstraint('senlin.policy')
-            ]
         ),
         POLICY_PROPS: properties.Schema(
             properties.Schema.MAP,
@@ -177,6 +174,8 @@ class Policy(resource.Resource):
             return True
         self.remove_bindings(bindings)
         if self.check_action_done(bindings):
+            if self.properties[self.REFERENCE]:
+                return True
             with self.client_plugin().ignore_not_found:
                 self.client().delete_policy(self.resource_id)
                 return True
