@@ -1,0 +1,26 @@
+heat_template_version: 2013-05-23
+
+parameters:
+  flavor:
+    type: string
+    default: m1.tiny
+  image:
+    type: strings
+    default: cirros-0.3.4-x86_64-uec
+  network:
+    type: string
+    default: private
+
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      networks:
+        - network: {get_param: network}
+
+outputs:
+  ip:
+    description: Address of this server
+    value: {get_attr: [server, networks, {get_param: network}, 0]}
