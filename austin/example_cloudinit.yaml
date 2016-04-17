@@ -1,0 +1,12 @@
+heat_template_version: 2013-05-23
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.tiny
+      image: fedora
+      networks:
+        - network: private
+      user_data_format: RAW
+      user_data: |
+        echo 'hello world' > /tmp/helloworld
