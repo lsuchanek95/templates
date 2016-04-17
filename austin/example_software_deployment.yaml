@@ -1,0 +1,25 @@
+heat_template_version: 2013-05-23
+resources:
+  sc:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: |
+        echo 'hello world' > /tmp/helloworld
+
+  sd:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config: {get_resource: sc}
+      server: {get_resource: server}
+      signal_transport: HEAT_SIGNAL
+
+  server:
+    type: OS::Nova::Server
+    properties:
+      flavor: m1.tiny
+      image: fedora
+      networks:
+        - network: private
+      user_data_format: SOFTWARE_CONFIG
+      software_config_transport: POLL_SERVER_HEAT
