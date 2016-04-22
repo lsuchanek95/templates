@@ -1,4 +1,18 @@
-heat_template_version: 2013-05-23
+heat_template_version: 2016-04-08
+parameters:
+  flavor:
+    type: string
+    default: m1.tiny
+  image:
+    type: string
+    default: fedora
+  ssh_key:
+    type: string
+    default: demo
+  network:
+    type: string
+    default: private
+
 resources:
   sc:
     type: OS::Heat::SoftwareConfig
@@ -17,9 +31,15 @@ resources:
   server:
     type: OS::Nova::Server
     properties:
-      flavor: m1.tiny
-      image: fedora
+      flavor: {get_param: flavor}
+      image: {get_param: image}
+      key_name: {get_param: ssh_key}
       networks:
-        - network: private
+        - network: {get_param: network}
       user_data_format: SOFTWARE_CONFIG
       software_config_transport: POLL_SERVER_HEAT
+
+outputs:
+  ip:
+    description: Address of this server
+    value: {get_attr: [server, networks, {get_param: network}, 0]}
