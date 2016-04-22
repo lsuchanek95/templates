@@ -2,10 +2,10 @@ heat_template_version: 2016-04-08
 parameters:
   flavor:
     type: string
-    default: m1.tiny
+    default: demo
   image:
     type: string
-    default: fedora
+    default: fedora-sc
   ssh_key:
     type: string
     default: demo
@@ -24,6 +24,7 @@ resources:
         - network: {get_param: network}
       user_data_format: RAW
       user_data: |
+        #!/bin/sh
         echo '### hello world ###' |tee /tmp/helloworld
 
 outputs:
