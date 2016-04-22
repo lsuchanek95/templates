@@ -5,7 +5,7 @@ resources:
     properties:
       group: script
       config: |
-        echo 'hello world' > /tmp/helloworld
+        echo 'hello world' |tee /tmp/helloworld
 
   sd:
     type: OS::Heat::SoftwareDeployment

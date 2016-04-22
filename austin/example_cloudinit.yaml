@@ -9,4 +9,4 @@ resources:
         - network: private
       user_data_format: RAW
       user_data: |
-        echo 'hello world' > /tmp/helloworld
+        echo '### hello world ###' |tee /tmp/helloworld
