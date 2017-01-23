@@ -1,0 +1,21 @@
+heat_template_version: ocata
+
+resources:
+  cluster1:
+    type: OS::Senlin::Cluster
+    properties:
+      desired_capacity: 1
+      metadata:
+        config:
+          word: world
+      profile: vp9
+
+outputs:
+  ips:
+    value: {get_attr: [cluster1, collect, "details.addresses.private[0].addr"]}
+  normal_path:
+    value: {get_attr: [cluster1, collect, "details.addresses.private[0].addr", 0]}
+  invalid_collect:
+    value: {get_attr: [cluster1, collect, "details.addresses.private[0].ddd" ]}
+  meta:
+    value: {get_attr: [cluster1, metadata, "config" ]}
