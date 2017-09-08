@@ -1,0 +1,92 @@
+heat_template_version: 2013-05-23
+parameters:
+  flavor:
+    type: string
+    default: m1.small
+  image:
+    type: string
+    default: ubuntu-14.04-server-cloudimg-amd64
+  public_network:
+    type: string
+    default: public
+  dns:
+    type: string
+    default: "8.8.8.8"
+  keypair:
+    type: string
+
+resources:
+  private_network:
+    type: OS::Neutron::Net
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: {get_resource: private_network}
+      cidr: "10.1.0.0/24"
+      dns_nameservers:
+        - {get_param: dns}
+  
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: public_network }
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: {get_resource: router}
+      subnet_id: {get_resource: private_subnet}
+
+  db_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: {get_resource: private_network}
+
+  app_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: {get_resource: private_network}
+
+  app_floating:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: public_network}
+      port_id: {get_resource: app_port}
+
+  # db_script:
+  #   type: OS::Heat::SoftwareConfig
+  #   properties:
+  #     group: ungrouped
+  #     config: {get_file: db.sh}
+
+  db_server:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: {get_param: flavor}
+      key_name: {get_param: keypair}
+      networks:
+        - port: {get_resource: db_port}
+      user_data_format: RAW
+      user_data: {get_file: db.sh}
+
+  app_server:
+    type: OS::Nova::Server
+    properties:
+      image: {get_param: image}
+      flavor: {get_param: flavor}
+      key_name: {get_param: keypair}
+      networks:
+        - port: {get_resource: app_port}
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: {get_file: app.sh}
+          params:
+            DB_IP: {get_attr: [db_server, first_address]}
+
+outputs:
+  app_server_ip:
+    value: {get_attr: [app_floating, floating_ip_address]}
