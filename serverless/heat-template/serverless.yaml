@@ -12,7 +12,15 @@ parameters:
   dns:
     type: string
     default: "8.8.8.8"
+  min_size:
+    type: number
+    default: 1
+  max_size:
+    type: number
+    default: 3
   keypair:
+    type: string
+  app_download_url:
     type: string
 
 resources:
@@ -44,23 +52,6 @@ resources:
     properties:
       network_id: {get_resource: private_network}
 
-  app_port:
-    type: OS::Neutron::Port
-    properties:
-      network_id: {get_resource: private_network}
-
-  app_floating:
-    type: OS::Neutron::FloatingIP
-    properties:
-      floating_network: {get_param: public_network}
-      port_id: {get_resource: app_port}
-
-  # db_script:
-  #   type: OS::Heat::SoftwareConfig
-  #   properties:
-  #     group: ungrouped
-  #     config: {get_file: db.sh}
-
   db_server:
     type: OS::Nova::Server
     properties:
@@ -70,23 +61,112 @@ resources:
       networks:
         - port: {get_resource: db_port}
       user_data_format: RAW
-      user_data: {get_file: db.sh}
+      user_data: |
+        #!/bin/bash
+        apt-get update
+        apt-get install -y postgresql
+        service postgresql start
+        apt-get install -y postgresql-9.5
 
-  app_server:
-    type: OS::Nova::Server
+        echo "listen_addresses = '*'" >> /etc/postgresql/9.5/main/postgresql.conf
+        echo 'host    all             all             10.1.0.0/24             md5' >> /etc/postgresql/9.5/main/pg_hba.conf
+
+        service postgresql restart
+
+        sudo -u postgres psql -c "CREATE ROLE vserverless LOGIN PASSWORD 'vserverless'"
+        sudo -u postgres psql -c "CREATE DATABASE vserverless OWNER vserverless ENCODING 'UTF8' template template0"
+
+  app_asg:
+    type: OS::Heat::AutoScalingGroup
     properties:
-      image: {get_param: image}
-      flavor: {get_param: flavor}
-      key_name: {get_param: keypair}
-      networks:
-        - port: {get_resource: app_port}
-      user_data_format: RAW
-      user_data:
-        str_replace:
-          template: {get_file: app.sh}
-          params:
-            DB_IP: {get_attr: [db_server, first_address]}
+      min_size: {get_param: min_size}
+      max_size: {get_param: max_size}
+      resource:
+        type: lb_server.yaml
+        properties:
+          flavor: {get_param: flavor}
+          image: {get_param: image}
+          key_name: {get_param: keypair}
+          network: {get_param: network}
+          pool_id: {get_resource: pool}
+          metadata: {"metering.server_group": {get_param: "OS::stack_id"}}
+          user_data:
+            str_replace:
+              template: |
+                #!/bin/bash
+                echo "DB_IP db_server" >> /etc/hosts
+                add-apt-repository ppa:openjdk-r/ppa
+                apt-get update
+                apt-get install -y openjdk-8-jdk
+                mkdir /opt/vserverless-app
+                cd /opt/vserverless-app/
+                curl -o application.jar VSERVERLESS_APP_DOWNLOAD_URL
+                nohup java -jar application.jar &
+              params:
+                DB_IP: {get_attr: [db_server, first_address]}
+                VSERVERLESS_APP_DOWNLOAD_URL: {get_param: app_download_url}
+
+  web_server_scaleup_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: app_asg}
+      cooldown: 60
+      scaling_adjustment: 1
+
+  web_server_scaledown_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: app_asg}
+      cooldown: 60
+      scaling_adjustment: -1
+
+  monitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+
+  pool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: HTTP
+      monitors: [{get_resource: monitor}]
+      subnet_id: {get_resource: private_subnet}
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: 80
+
+  lb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      protocol_port: 80
+      pool_id: {get_resource: pool}
+
+  # assign a floating ip address to the load balancer
+  # pool.
+  lb_floating:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: public_network}
+      port_id: {get_attr: [pool, vip, port_id]}
 
 outputs:
-  app_server_ip:
-    value: {get_attr: [app_floating, floating_ip_address]}
+  pool_ip_address:
+    value: {get_attr: [pool, vip, address]}
+    description: The IP address of the load balancing pool
+  scale_up_url:
+    description: >
+      This URL is the webhook to scale up the autoscaling group.  You
+      can invoke the scale-up operation by doing an HTTP POST to this
+      URL; no body nor extra headers are needed.
+    value: {get_attr: [web_server_scaleup_policy, alarm_url]}
+  scale_dn_url:
+    description: >
+      This URL is the webhook to scale down the autoscaling group.
+      You can invoke the scale-down operation by doing an HTTP POST to
+      this URL; no body nor extra headers are needed.
+    value: {get_attr: [web_server_scaledown_policy, alarm_url]}

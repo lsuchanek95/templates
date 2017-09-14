@@ -2,7 +2,7 @@
 # How to use this template
 
 ```shell
-heat stack-create -P keypair=your_keypair -f ./serverless.yaml serverless
+heat stack-create -P keypair=your_keypair -P app_download_url=xxx -f ./serverless.yaml serverless
 ```
 
 After deployment, ssh to app_server and check `/var/log/cloud-init-output.log`, when you saw following at the end of file, custom script is finished.
