@@ -26,11 +26,15 @@ AVG_MEM=$(($SUM_MEM/$MEM_LINES))
 echo "AVERAGE MEMORY: $AVG_MEM"
 
 if [[ $AVG_MEM -gt 80 ]]; then
-  if [[ -f /tmp/monitor_count ]] && [[ `cat /tmp/monitor` -le 10 ]]; then
-    echo "Cooldown count: `cat /tmp/minitor`"
-    exit 0
+  COUNT=0
+  if [[ -f /tmp/monitor_count ]]; then
+    COUNT=`cat /tmp/monitor`
+    echo "Cooldown count: $COUNT"
+    if [[ $COUNT -le 5 ]]; then
+      echo "$((COUNT+1))" > /tmp/monitor_count
+      exit 0
+    fi
   fi
-  echo "Scale out"
   curl -X POST $SCALEOUT_URL
   echo "1" > /tmp/monitor_count
 fi
