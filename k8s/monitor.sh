@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 
 if [[ ! -f '/opt/scaleout_url.txt' ]]; then
   echo "`date` no scaleout_url.txt"
