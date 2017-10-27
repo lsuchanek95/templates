@@ -14,7 +14,7 @@ fi
 
 SCALEOUT_URL=`cat /opt/scaleout_url.txt`
 TOP_NODES=`kubectl top node`
-if [[ -n "`echo $TOP_NODES|grep 'metric'`" ]]; then
+if [[ `echo $TOP_NODES |grep -v 'error' | wc -l` -le 0 ]]; then
   echo "$TOP_NODES"
   exit 0
 fi
