@@ -216,7 +216,9 @@ subjects:
   - kind: ServiceAccount
     name: nginx-ingress-serviceaccount
     namespace: ingress-nginx
+
 ---
+
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
