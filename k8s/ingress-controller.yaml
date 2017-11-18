@@ -55,11 +55,9 @@ metadata:
   labels:
     app: default-http-backend
 spec:
-  type: NodePort
   ports:
   - port: 80
     targetPort: 8080
-    nodePort: 32222
   selector:
     app: default-http-backend
 ---
@@ -237,6 +235,7 @@ spec:
         prometheus.io/scrape: 'true'
     spec:
       serviceAccountName: nginx-ingress-serviceaccount
+      # hostNetwork: true
       tolerations:
       - key: node-role.kubernetes.io/master
         effect: NoSchedule
@@ -263,8 +262,10 @@ spec:
           ports:
           - name: http
             containerPort: 80
+            hostPort: 80
           - name: https
             containerPort: 443
+            hostPort: 443
           livenessProbe:
             failureThreshold: 3
             httpGet:
