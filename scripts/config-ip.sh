@@ -1,6 +1,6 @@
 #!/bin/bash
 
-NIC_NAME='ens160'
+NIC_NAME=`ip route |grep default|awk '{print $5}'`
 NET_INFO=`ip a |grep $NIC_NAME|grep inet|awk '{print $2}'`
 IP=`echo $NET_INFO|cut -d'/' -f1`
 PREFIX=`echo $NET_INFO|cut -d'/' -f2`
